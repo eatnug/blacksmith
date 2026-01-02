@@ -1,0 +1,14 @@
+{
+  "name": "blacksmith",
+  "owner": {
+    "name": "eatnug"
+  },
+  "plugins": [
+    {
+      "name": "blacksmith",
+      "source": ".",
+      "description": "Essential workflow skills: clarify, split, forge, look-back",
+      "version": "1.0.0"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "forge",
+  "description": "Detect recurring tasks and patterns, then create new skills to automate them.",
+  "version": "1.0.0",
+  "author": {
+    "name": "eatnug"
+  }
+}

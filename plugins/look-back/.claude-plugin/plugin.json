@@ -1,0 +1,8 @@
+{
+  "name": "look-back",
+  "description": "Review the current session to identify and fix mistakes. Catches errors and missed requirements.",
+  "version": "1.0.0",
+  "author": {
+    "name": "eatnug"
+  }
+}

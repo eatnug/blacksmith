@@ -1,9 +1,0 @@
-{
-  "name": "blacksmith",
-  "description": "Essential workflow skills for Claude Code: clarify requirements, split complex tasks, forge new skills, and review work",
-  "version": "1.0.0",
-  "author": {
-    "name": "eatnug"
-  },
-  "keywords": ["skills", "workflow", "productivity"]
-}

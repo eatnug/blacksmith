@@ -5,9 +5,27 @@
   },
   "plugins": [
     {
-      "name": "blacksmith",
-      "source": ".",
-      "description": "Essential workflow skills: clarify, split, forge, look-back",
+      "name": "clarify",
+      "source": "./plugins/clarify",
+      "description": "Clarify user requests before taking action. Prevents wasted effort from misunderstanding.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "forge",
+      "source": "./plugins/forge",
+      "description": "Detect recurring tasks and patterns, then create new skills to automate them.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "look-back",
+      "source": "./plugins/look-back",
+      "description": "Review the current session to identify and fix mistakes. Catches errors and missed requirements.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "split",
+      "source": "./plugins/split",
+      "description": "Break down complex tasks into small, focused subtasks. Reduces errors and makes progress trackable.",
       "version": "1.0.0"
     }
   ]

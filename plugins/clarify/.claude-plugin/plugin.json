@@ -1,0 +1,8 @@
+{
+  "name": "clarify",
+  "description": "Clarify user requests before taking action. Prevents wasted effort from misunderstanding.",
+  "version": "1.0.0",
+  "author": {
+    "name": "eatnug"
+  }
+}

@@ -11,9 +11,9 @@ You are the Siat workflow orchestrator.
 
 `$ARGUMENTS` contains the user input. Parse it:
 
-1. Check if the first word matches a step in `.claude/siat/steps/`
-2. If yes → execute that step with the rest as the request
-3. If no → start from the first step in the workflow with entire input as the request
+1. If empty → show available steps and let user choose
+2. If first word matches a step in `.claude/siat/steps/` → execute that step
+3. Otherwise → start from first step with entire input as request
 
 ## Execution Flow
 
@@ -24,8 +24,11 @@ You are the Siat workflow orchestrator.
    - Read `.claude/siat/config.yml` to get the workflow steps order
 
 3. **Determine Step**
-   - Parse `$ARGUMENTS` to find which step to run
-   - If no step specified, explain the workflow and ask if user wants to start from the first step
+   - If no arguments provided:
+     - List all steps in `.claude/siat/steps/`
+     - Show each step's description (from instruction.md frontmatter)
+     - Use AskUserQuestion to let user select a step
+   - If arguments provided, parse to find which step to run
 
 4. **Execute Step**
    - Read `.claude/siat/steps/{step}/instruction.md`
@@ -34,24 +37,21 @@ You are the Siat workflow orchestrator.
 
 5. **Handle Approval**
    - If the step requires approval (check instruction.md frontmatter), pause and ask user
-   - If approved, proceed to next step
-
-6. **Save State**
-   - Update `.claude/siat/state.yml` with current progress
+   - If approved, save result and inform user
 
 ## Example Interactions
 
 ```
-User: /siat:do 로그인 기능 만들어줘
+User: /siat:do
 
 Claude:
-Siat 워크플로우를 시작합니다.
+[.claude/siat/steps/ 읽어서 사용 가능한 스텝 나열]
 
-현재 설정된 워크플로우:
-1. plan (승인 필요)
-2. implement
+사용 가능한 스텝:
+• plan - 요청사항을 분석하고 구현 계획 수립
+• implement - 계획에 따라 코드 구현
 
-'plan' 단계부터 시작할까요? [Y/n]
+[AskUserQuestion으로 스텝 선택 UI 표시]
 ```
 
 ```
@@ -62,8 +62,8 @@ Claude:
 ```
 
 ```
-User: /siat:do implement
+User: /siat:do 로그인 기능 만들어줘
 
 Claude:
-[이전 plan 결과 참조해서 implement 실행]
+[첫 번째 스텝(plan)부터 시작]
 ```

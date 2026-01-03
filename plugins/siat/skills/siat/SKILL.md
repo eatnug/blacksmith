@@ -24,6 +24,9 @@ workflow:
 steps:
   - step1
   - step2
+
+output:
+  path: ".claude/siat/specs"  # 결과물 저장 경로 (선택, 기본값)
 ```
 
 **절대 임의의 키를 추가하지 마세요.** `utilities`, `helpers`, `plugins` 같은 키는 허용되지 않습니다.
@@ -76,59 +79,41 @@ approval:
 
 ## 워크플로우 실행
 
-### 역할
-
-1. `.claude/siat/config.yml`에서 워크플로우 설정 읽기
-2. 현재 진행 상태 관리 (`.claude/siat/state.yml`)
-3. 각 스텝 순서대로 실행
-4. 승인이 필요한 스텝에서 사용자 확인 받기
-
 ### 스텝 실행 방법
 
-각 스텝을 실행할 때:
+`/siat:do <step> <요청>` 실행 시:
 
-1. `.claude/siat/steps/{step}/instruction.md` 읽기
-2. frontmatter에서 inputs, outputs, approval 확인
-3. instruction 본문의 지침 따르기
-4. 결과를 `.claude/siat/steps/{step}/spec.md` 템플릿 형식으로 작성
-5. 결과를 `.claude/siat/artifacts/{step}.md`에 저장
+1. 요청에서 태스크 slug 생성 (예: "헤더 만들어줘" → `create-header`)
+2. `.claude/siat/steps/{step}/instruction.md` 읽기
+3. frontmatter에서 inputs, outputs, approval 확인
+4. instruction 본문의 지침 따르기
+5. 같은 폴더의 `spec.md` 템플릿 형식으로 결과 작성
+6. 결과를 `{output.path}/{task-slug}/{step}.md`에 저장
+   - 기본 경로: `.claude/siat/specs/{task-slug}/{step}.md`
 
-### 상태 관리
+### 결과물 구조
 
-`.claude/siat/state.yml` 형식:
-
-```yaml
-current_run:
-  request: "사용자 요청 내용"
-  current_step: "plan"
-  started_at: "2024-01-01T00:00:00Z"
-
-steps:
-  plan:
-    status: "completed"  # pending | in_progress | completed | skipped
-    artifact: ".claude/siat/artifacts/plan.md"
-  implement:
-    status: "pending"
+```
+.claude/siat/specs/
+└── create-header/           # 태스크 slug
+    ├── plan.md              # plan 스텝 결과
+    └── implement.md         # implement 스텝 결과
 ```
 
 ### 워크플로우 흐름
 
 ```
-시작
+/siat:do plan 헤더 만들어줘
   ↓
-config.yml 읽기
+config.yml 읽기 (output.path 확인)
   ↓
-state.yml 확인 (이전 진행 상태)
+태스크 slug 생성 (create-header)
   ↓
-다음 스텝 결정
-  ↓
-스텝 실행
+plan 스텝 실행
   ↓
 approval 필요? → 예: 사용자 확인 대기
   ↓
-state.yml 업데이트
-  ↓
-다음 스텝 있음? → 예: 반복
+specs/create-header/plan.md 저장
   ↓
 완료
 ```
@@ -137,5 +122,5 @@ state.yml 업데이트
 
 - 각 스텝의 instruction.md를 정확히 따르세요
 - 스텝의 inputs가 명확하지 않으면 사용자에게 질문하세요
-- 스텝의 outputs가 모두 결정되어야 해당 스텝이 완료됩니다
+- 결과물은 반드시 spec.md 템플릿 형식을 따르세요
 - approval이 필요한 스텝은 반드시 사용자 확인을 받으세요

@@ -5,3 +5,6 @@ workflow:
 steps:
   - plan
   - implement
+
+output:
+  path: ".claude/siat/specs"

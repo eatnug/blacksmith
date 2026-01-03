@@ -1,9 +1,10 @@
 workflow:
   name: "default"
-  description: "기본 워크플로우: plan → implement"
+  description: "빡빡한 워크플로우: spec → design → implement"
 
 steps:
-  - plan
+  - spec
+  - design
   - implement
 
 output:

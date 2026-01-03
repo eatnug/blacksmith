@@ -33,6 +33,12 @@
       "source": "./plugins/split",
       "description": "Break down complex tasks into small, focused subtasks. Reduces errors and makes progress trackable.",
       "version": "1.0.0"
+    },
+    {
+      "name": "siat",
+      "source": "./plugins/siat",
+      "description": "Spec-driven development workflow. Guides you through plan → implement steps with customizable workflow.",
+      "version": "1.0.0"
     }
   ]
 }

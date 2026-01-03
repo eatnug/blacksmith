@@ -1,0 +1,8 @@
+{
+  "name": "siat",
+  "description": "Spec-driven development workflow. Guides you through plan → implement steps with customizable workflow.",
+  "version": "1.0.0",
+  "author": {
+    "name": "eatnug"
+  }
+}

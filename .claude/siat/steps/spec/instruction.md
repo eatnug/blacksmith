@@ -11,6 +11,10 @@ outputs:
   - 수용 기준 (Acceptance Criteria)
   - 범위 정의 (In/Out of Scope)
   - 열린 질문들 (해결 필요)
+
+hooks:
+  post-step:
+    - agent:siat-gh-issue-creator
 ---
 
 # Spec (요구사항 명세)

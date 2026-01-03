@@ -12,6 +12,10 @@ outputs:
   - 인터페이스 정의
   - 데이터 모델 (필요시)
   - 기술적 결정 및 근거
+
+hooks:
+  post-step:
+    - agent:siat-gh-issue-creator
 ---
 
 # Design (기술 설계)

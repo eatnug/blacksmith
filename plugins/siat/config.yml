@@ -1,0 +1,7 @@
+workflow:
+  name: "default"
+  description: "기본 워크플로우: plan → implement"
+
+steps:
+  - plan
+  - implement

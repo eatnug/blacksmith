@@ -21,6 +21,23 @@ research.md  plan.md  implement.md  review.md
 - **문서 기반 커뮤니케이션**: Claude든 사람이든, 문서를 보고 이어갈 수 있음
 - **세션 분리 가능**: 단계 사이에 세션을 끊고 새로 시작해도 됨
 
+### Constitution (전역 원칙)
+
+`constitution.md`에 프로젝트 전역 원칙을 정의합니다. 모든 스텝에서 이 원칙을 따릅니다.
+
+```markdown
+# constitution.md
+
+## 불명확 처리 원칙
+- 추측하지 않는다
+- `[NEEDS CLARIFICATION: 질문]` 마커를 붙인다
+- 마커가 있으면 다음 단계 진행 불가
+
+## 프로젝트 원칙
+- 테스트 없이 구현 없다
+- breaking change 금지
+```
+
 ### 팀별 커스터마이징
 
 단계(step)는 예시일 뿐, 팀에 맞게 정의합니다:
@@ -133,7 +150,8 @@ plugins/siat/
 ├── steps/                     # 기본 스텝 예시
 │   ├── plan/
 │   └── implement/
-└── config.yml                 # 기본 설정
+├── config.yml                 # 기본 설정
+└── constitution.md            # 전역 원칙 템플릿
 ```
 
 ### 프로젝트 구조 (초기화 후)
@@ -141,6 +159,7 @@ plugins/siat/
 ```
 .claude/siat/
 ├── config.yml                 # 워크플로우 설정
+├── constitution.md            # 전역 원칙 (커스터마이징)
 ├── steps/                     # 스텝 정의
 │   ├── plan/
 │   │   ├── instruction.md     # 실행 지침

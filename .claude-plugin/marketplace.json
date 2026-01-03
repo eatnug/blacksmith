@@ -38,7 +38,7 @@
       "name": "siat",
       "source": "./plugins/siat",
       "description": "Spec-driven development workflow. Guides you through plan → implement steps with customizable workflow.",
-      "version": "3.1.2"
+      "version": "3.2.0"
     }
   ]
 }

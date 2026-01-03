@@ -8,3 +8,20 @@ steps:
 
 output:
   path: ".claude/siat/specs"
+
+# GitHub 연동 설정 (선택)
+# 아래 주석을 해제하고 설정하면 GitHub Issue/PR 연동 가능
+#
+# sources:
+#   github:
+#     repo: null  # null이면 git remote에서 자동 감지
+#   defaults:
+#     plan:
+#       input:
+#         type: "github-issue"  # manual | file | github-issue | github-pr
+#         fallback: "manual"     # gh 없을 때 대체
+#     implement:
+#       output:
+#         type: "github-pr"
+#         draft: true
+#         link_issue: true       # Issue 번호 자동 링크

@@ -27,7 +27,24 @@ steps:
 
 output:
   path: ".claude/siat/specs"  # 결과물 저장 경로 (선택, 기본값)
+
+# GitHub 연동 설정 (선택)
+sources:
+  github:
+    repo: null  # null이면 git remote에서 자동 감지
+  defaults:
+    plan:
+      input:
+        type: "github-issue"
+        fallback: "manual"
+    implement:
+      output:
+        type: "github-pr"
+        draft: true
+        link_issue: true
 ```
+
+**허용되는 키:** `workflow`, `steps`, `output`, `sources`
 
 **절대 임의의 키를 추가하지 마세요.** `utilities`, `helpers`, `plugins` 같은 키는 허용되지 않습니다.
 
@@ -45,6 +62,20 @@ output:
 ---
 name: step-name
 description: 이 스텝이 하는 일
+
+# 입력 소스 설정 (선택, config.yml defaults 오버라이드)
+input:
+  type: "github-issue"  # manual | file | github-issue | github-pr
+  fields: [title, body, labels]  # github-issue/pr 전용
+  source: "plan"  # file 타입 전용: 이전 스텝 참조
+  fallback: "manual"  # gh 미사용 시 대체
+
+# 출력 설정 (선택)
+output:
+  type: "file"  # file | github-pr | github-issue-comment
+  also:  # 추가 출력 (선택)
+    - type: "github-issue-comment"
+      template: "## Plan Created\n..."
 
 inputs:
   - 필요한 정보 1
@@ -124,3 +155,62 @@ specs/create-header/plan.md 저장
 - 스텝의 inputs가 명확하지 않으면 사용자에게 질문하세요
 - 결과물은 반드시 spec.md 템플릿 형식을 따르세요
 - approval이 필요한 스텝은 반드시 사용자 확인을 받으세요
+
+---
+
+## GitHub 연동
+
+### Source Types
+
+#### Input Sources
+
+| Type | 설명 | 필드 | gh 명령 |
+|------|------|------|--------|
+| `manual` | 사용자 직접 입력 (기본) | - | - |
+| `file` | 이전 스텝 결과 읽기 | `source`: 스텝 이름 | - |
+| `github-issue` | GitHub Issue 읽기 | `fields`: [title, body, labels, comments] | `gh issue view` |
+| `github-pr` | GitHub PR 읽기 | `fields`: [title, body, files, diff] | `gh pr view` |
+
+#### Output Sinks
+
+| Type | 설명 | 옵션 | gh 명령 |
+|------|------|------|--------|
+| `file` | 로컬 파일 저장 (기본) | - | - |
+| `github-pr` | PR 생성 | `draft`, `link_issue`, `title`, `base` | `gh pr create` |
+| `github-issue-comment` | Issue에 코멘트 | `template` | `gh issue comment` |
+
+### gh CLI 요구사항
+
+GitHub 연동을 사용하려면:
+1. `gh` CLI 설치: https://cli.github.com/
+2. 인증: `gh auth login`
+
+gh가 없거나 인증되지 않으면 `fallback` 타입으로 대체됩니다.
+
+### 컨텍스트 파일 (.task.yml)
+
+스텝 간 데이터 전달을 위해 태스크 메타데이터 파일이 생성됩니다:
+
+```yaml
+# .claude/siat/specs/{task-slug}/.task.yml
+task:
+  slug: "implement-auth"
+  title: "Implement User Authentication"
+
+context:
+  github:
+    issue_number: 42
+    issue_url: "https://github.com/owner/repo/issues/42"
+
+steps:
+  plan:
+    status: "completed"
+    approved: true
+  implement:
+    status: "pending"
+```
+
+이 파일은 다음 용도로 사용됩니다:
+- 이전 스텝에서 가져온 GitHub Issue/PR 정보 저장
+- 스텝 완료 상태 추적
+- PR 생성 시 Issue 링크 (`Fixes #N`)

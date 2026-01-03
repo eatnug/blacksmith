@@ -2,7 +2,6 @@
 name: siat-step-executor
 description: Execute a siat step in isolated context (for mode:agent)
 tools: Read, Write, Edit, Glob, Grep, Bash
-model: sonnet
 ---
 
 # Step Executor

@@ -1,0 +1,1 @@
+../../plugins/siat/commands/init.md

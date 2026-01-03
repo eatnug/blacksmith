@@ -46,6 +46,7 @@ plugins/              # 배포용 소스 코드 (원본)
 ### 현재 심볼릭 링크 구조
 ```
 .claude/commands/do.md      → plugins/siat/commands/do.md
+.claude/commands/init.md    → plugins/siat/commands/init.md
 .claude/skills/clarify      → plugins/clarify/skills/clarify
 .claude/skills/forge        → plugins/forge/skills/forge
 .claude/skills/format-response → plugins/format-response/skills/format-response
@@ -72,34 +73,35 @@ Both versions must be in sync. Never commit plugin changes without bumping both.
 
 ---
 
-## Siat Plugin: Template vs Project Config
+## Siat Plugin: 시스템 vs 유저 파일
 
-siat 플러그인은 **템플릿**과 **프로젝트 설정**이 분리되어 있습니다.
+siat 플러그인은 **시스템 파일**(플러그인)과 **유저 파일**(프로젝트)이 분리되어 있습니다.
 
 ### 구조
 
-| 경로 | 역할 | 수정 시점 |
-|------|------|----------|
-| `plugins/siat/steps/` | 기본 템플릿 (hooks 없음) | 새 프로젝트 init 시 복사됨 |
-| `plugins/siat/config.yml` | 기본 config 템플릿 | 새 프로젝트 init 시 복사됨 |
-| `plugins/siat/agents/` | 공유 에이전트 (gh-issue-creator 등) | 모든 프로젝트에서 사용 |
-| `.claude/siat/` | **이 레포**의 워크플로우 설정 | 이 레포에서만 사용 |
+| 경로 | 역할 | 업데이트 | 수정 |
+|------|------|----------|------|
+| `plugins/siat/commands/` | 커맨드 (do, init) | 플러그인 업데이트 시 | ❌ |
+| `plugins/siat/agents/` | 유틸리티 에이전트 | 플러그인 업데이트 시 | ❌ |
+| `plugins/siat/templates/` | 초기화 시 복사될 템플릿 | 플러그인 업데이트 시 | ❌ |
+| `.claude/siat/` | **이 레포**의 워크플로우 설정 | 수동 | ✅ 커스터마이징 |
 
 ### 작업별 수정 위치
 
 | 작업 | 수정 위치 |
 |------|----------|
-| 공유 에이전트 추가/수정 (gh-*, reporter 등) | `plugins/siat/agents/` |
-| 기본 템플릿 수정 (새 프로젝트용) | `plugins/siat/steps/`, `config.yml` |
+| 커맨드 로직 수정 (do, init) | `plugins/siat/commands/` |
+| 에이전트 수정 (gh-*, reporter 등) | `plugins/siat/agents/` |
+| 기본 템플릿 수정 (새 프로젝트용) | `plugins/siat/templates/` |
 | **이 레포** 워크플로우 커스터마이징 | `.claude/siat/` |
 
 ### 템플릿 변경 시 주의 (IMPORTANT)
 
-`plugins/siat/steps/` 템플릿을 수정해도 `.claude/siat/steps/`에 **자동 반영되지 않습니다**.
+`plugins/siat/templates/` 템플릿을 수정해도 `.claude/siat/`에 **자동 반영되지 않습니다**.
 
 필요 시 수동으로 반영:
-1. `plugins/siat/steps/`의 변경사항 확인
-2. `.claude/siat/steps/`에 필요한 부분만 반영 (커스터마이징 유지)
+1. `plugins/siat/templates/`의 변경사항 확인
+2. `.claude/siat/`에 필요한 부분만 반영 (커스터마이징 유지)
 
 ### 이 레포의 커스터마이징
 

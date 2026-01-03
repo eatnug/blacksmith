@@ -15,23 +15,28 @@ You receive a list of hooks to execute:
 
 ```
 hooks:
-  - agent:navigator
+  - agent:siat-gh-issue-creator
   - skill:clarify
 ```
 
 And context about the current task and step:
-- task slug (e.g., `create-header`, `add-login`)
-- step name
-- request (user's original request)
-- previous step output path (if exists)
+- `task_slug`: task identifier (e.g., `create-header`, `add-login`)
+- `step`: step name (e.g., `spec`, `design`, `implement`)
+- `request`: user's original request
+- `output_path`: where specs are saved (e.g., `.claude/siat/specs`)
 
 ## Execution
 
 For each hook in order:
 
-1. **agent:xxx**
+1. **agent:xxx** (e.g., `agent:siat-gh-issue-creator`)
    - Call Task tool with subagent_type matching the agent name
-   - Pass step context as prompt
+   - Pass context as prompt:
+     ```
+     task_slug: {task_slug}
+     step: {step}
+     output_path: {output_path}
+     ```
 
 2. **skill:xxx**
    - Call Skill tool with the skill name

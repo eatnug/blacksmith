@@ -59,6 +59,17 @@ If step specified:
 
 ### 5. Merge Hooks
 
+Read step-specific hooks from `.claude/siat/steps/{step}/instruction.md` frontmatter:
+
+```yaml
+---
+name: implement
+hooks:
+  post-step:
+    - agent:siat-gh-pr-creator
+---
+```
+
 Combine config hooks with step-specific hooks (extend, not override):
 
 ```

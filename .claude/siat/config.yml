@@ -1,0 +1,18 @@
+workflow:
+  name: "blacksmith"
+  description: "Blacksmith 레포 워크플로우: spec → design → implement + GitHub 연동"
+
+steps:
+  - spec
+  - design
+  - implement
+
+output:
+  path: ".claude/siat/specs"
+
+execution:
+  mode: "manual"
+
+hooks:
+  pre-step: []
+  post-step: []

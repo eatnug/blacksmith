@@ -14,8 +14,6 @@ description: |
 
 ### config.yml
 
-허용되는 키만 사용:
-
 ```yaml
 workflow:
   name: "워크플로우 이름"
@@ -26,10 +24,20 @@ steps:
   - step2
 
 output:
-  path: ".claude/siat/specs"  # 결과물 저장 경로 (선택, 기본값)
+  path: ".claude/siat/specs"  # 결과물 저장 경로
+
+execution:
+  mode: "manual"  # "manual" | "auto"
+
+hooks:
+  pre-step:        # 스텝 실행 전 훅
+    - agent:navigator
+    - skill:clarify
+  post-step:       # 스텝 실행 후 훅
+    - agent:reporter
 ```
 
-**절대 임의의 키를 추가하지 마세요.** `utilities`, `helpers`, `plugins` 같은 키는 허용되지 않습니다.
+**허용되는 키만 사용하세요.** 임의의 키 추가 금지.
 
 ### 스텝 디렉토리 구조
 
@@ -54,8 +62,11 @@ outputs:
   - 결과물 1
   - 결과물 2
 
-approval:
-  required: true|false
+hooks:                    # 스텝별 훅 (config 오버라이드)
+  pre-step:
+    - skill:clarify
+  post-step:
+    - agent:reporter
 ---
 
 # Step Name
@@ -77,50 +88,83 @@ approval:
 
 ---
 
+## 실행 모드
+
+### manual (기본)
+
+- 스텝이 메인 컨텍스트에서 실행
+- 분석 과정이 컨텍스트에 쌓임
+- 세션 분리는 사용자가 직접 관리
+
+### auto
+
+- 스텝이 서브에이전트에서 실행
+- 결과 요약만 메인 컨텍스트에 남음
+- `--auto` 플래그로 강제 가능
+
+---
+
+## 훅 시스템
+
+### 훅 타입
+
+| 접두사 | 설명 | 예시 |
+|--------|------|------|
+| `agent:` | 에이전트 호출 | `agent:navigator` |
+| `skill:` | 스킬 호출 | `skill:clarify` |
+
+### 실행 순서
+
+```
+pre-step hooks → step 실행 → post-step hooks
+```
+
+### 훅 병합
+
+스텝의 instruction.md에 hooks가 있으면 config.yml과 합쳐짐 (extend).
+
+```
+최종 pre-step = 전역 pre-step + 스텝별 pre-step
+최종 post-step = 전역 post-step + 스텝별 post-step
+```
+
+전역 훅이 먼저 실행되고, 스텝별 훅이 그 다음.
+
+---
+
 ## 워크플로우 실행
 
-### 스텝 실행 방법
+### /siat:do [--auto] [step] [request]
 
-`/siat:do <step> <요청>` 실행 시:
+1. **인자 파싱**
+   - `--auto`: auto 모드 강제
+   - `step`: 실행할 스텝 (없으면 navigator 사용)
+   - `request`: 사용자 요청
 
-1. 요청에서 태스크 slug 생성 (예: "헤더 만들어줘" → `create-header`)
-2. `.claude/siat/steps/{step}/instruction.md` 읽기
-3. frontmatter에서 inputs, outputs, approval 확인
-4. instruction 본문의 지침 따르기
-5. 같은 폴더의 `spec.md` 템플릿 형식으로 결과 작성
-6. 결과를 `{output.path}/{task-slug}/{step}.md`에 저장
-   - 기본 경로: `.claude/siat/specs/{task-slug}/{step}.md`
+2. **훅 실행**
+   - pre-step, post-step 훅은 항상 서브에이전트로 실행
+   - `siat-hook-runner` 에이전트가 처리
+
+3. **스텝 실행**
+   - manual 모드: 메인에서 직접
+   - auto 모드: `siat-step-executor`가 처리
 
 ### 결과물 구조
 
 ```
 .claude/siat/specs/
-└── create-header/           # 태스크 slug
-    ├── plan.md              # plan 스텝 결과
-    └── implement.md         # implement 스텝 결과
+└── {task-slug}/
+    ├── plan.md
+    └── implement.md
 ```
 
-### 워크플로우 흐름
+---
 
-```
-/siat:do plan 헤더 만들어줘
-  ↓
-config.yml 읽기 (output.path 확인)
-  ↓
-태스크 slug 생성 (create-header)
-  ↓
-plan 스텝 실행
-  ↓
-approval 필요? → 예: 사용자 확인 대기
-  ↓
-specs/create-header/plan.md 저장
-  ↓
-완료
-```
+## 제공 에이전트
 
-### 중요 원칙
-
-- 각 스텝의 instruction.md를 정확히 따르세요
-- 스텝의 inputs가 명확하지 않으면 사용자에게 질문하세요
-- 결과물은 반드시 spec.md 템플릿 형식을 따르세요
-- approval이 필요한 스텝은 반드시 사용자 확인을 받으세요
+| 에이전트 | 역할 |
+|----------|------|
+| `siat-hook-runner` | 훅 실행 (skill/agent 모두 처리) |
+| `siat-navigator` | 다음 스텝 찾기 |
+| `siat-reporter` | 결과 리포트 생성 |
+| `siat-step-executor` | 스텝 실행 (agent 모드) |

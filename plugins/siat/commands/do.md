@@ -1,103 +1,179 @@
 ---
-description: Execute Siat workflow - guides through plan → implement steps
-argument-hint: "[step] [request]"
+description: Execute Siat workflow - guides through customizable steps with hooks
+argument-hint: "[--auto] [step] [task-slug|request]"
 ---
 
-# Siat Workflow
+# Siat Workflow Orchestrator
 
-You are the Siat workflow orchestrator.
+You are a lightweight orchestrator for siat workflows.
 
 ## Arguments
 
 `$ARGUMENTS` contains the user input. Parse it:
 
-1. If empty → show incomplete tasks and let user choose (DO NOT auto-execute)
-2. If first word matches a step in `.claude/siat/steps/` → execute that step
-3. Otherwise → start from first step with entire input as request
+1. `--auto` flag → force auto mode (override config)
+2. First word matches a step → execute that step
+3. Second word matches existing task slug → continue that task
+4. No step specified → use navigator to find next step
+5. Remaining text → the request (for new tasks)
+
+Examples:
+- `/siat:do` → navigate to find incomplete tasks
+- `/siat:do plan 헤더 만들어줘` → new task, execute plan step
+- `/siat:do implement create-header` → continue existing task
+- `/siat:do --auto implement create-login` → continue in auto mode
 
 ## Execution Flow
 
-1. **Check Setup**
-   - If `.claude/siat/` doesn't exist, tell the user to run `/siat:init` first
+### 1. Setup Check
 
-2. **Read Config**
-   - Read `.claude/siat/config.yml` to get the workflow steps order and output path
+If `.claude/siat/` doesn't exist, tell user to run `/siat:init` first.
 
-3. **Determine What To Do**
+### 2. Read Config
 
-   **If no arguments provided:**
-   - Scan `{output.path}/` (default: `.claude/siat/specs/`) for existing task folders
-   - For each task folder, check which steps are completed (has `{step}.md` file)
-   - Find incomplete tasks (tasks that haven't completed all steps in config.yml)
-   - **IMPORTANT: DO NOT automatically execute anything. Only show information.**
+Read `.claude/siat/config.yml`:
+- `steps`: workflow step order
+- `output.path`: where specs are saved
+- `execution.mode`: "manual" or "auto"
+- `hooks.pre-step`: hooks to run before step
+- `hooks.post-step`: hooks to run after step
 
-   Display format:
-   ```
-   📋 진행 중인 태스크:
+### 3. Determine Execution Mode
 
-   1. create-header
-      ✅ plan (완료)
-      ⬚ implement (미완료)
+```
+if --auto flag:
+    mode = "auto"
+else:
+    mode = config.execution.mode (default: "manual")
+```
 
-   2. add-login
-      ✅ plan (완료)
-      ⬚ implement (미완료)
-   ```
+### 4. Resolve Step
 
-   Then use AskUserQuestion with options:
-   - Each incomplete task as an option (e.g., "create-header → implement 진행")
-   - "새 태스크 시작" option
+If no step specified in arguments:
+- Run `Task(siat-navigator)` to find next step
+- Present options to user with AskUserQuestion
+- Wait for selection
 
-   **Wait for user selection. Do not proceed until user chooses.**
+If step specified:
+- Validate step exists in `.claude/siat/steps/{step}/`
 
-   **If arguments provided:**
-   - Parse to find which step/task to run
+### 5. Merge Hooks
 
-4. **Execute Step** (only after user selection)
-   - Read `.claude/siat/steps/{step}/instruction.md`
-   - Follow the instructions in that file
-   - Use `.claude/siat/steps/{step}/spec.md` as output template
+Combine config hooks with step-specific hooks (extend, not override):
 
-5. **Handle Approval**
-   - If the step requires approval (check instruction.md frontmatter), pause and ask user
-   - If approved, save result and inform user
+```
+final_hooks.pre-step = config.hooks.pre-step + step.hooks.pre-step
+final_hooks.post-step = config.hooks.post-step + step.hooks.post-step
+```
+
+Global hooks run first, then step-specific hooks.
+
+### 6. Execute Pre-Step Hooks
+
+If `final_hooks.pre-step` is not empty:
+
+```
+Task(siat-hook-runner, {
+    hooks: final_hooks.pre-step,
+    step: step_name,
+    request: user_request
+})
+```
+
+### 7. Execute Step
+
+**If mode == "auto":**
+
+```
+Task(siat-step-executor, {
+    step: step_name,
+    task: task_slug,
+    request: user_request,
+    output_path: config.output.path
+})
+```
+
+**If mode == "manual":**
+
+Execute step directly in main context:
+1. Read `.claude/siat/steps/{step}/instruction.md`
+2. Follow instructions
+3. Save output using spec.md template
+
+### 8. Execute Post-Step Hooks
+
+If `final_hooks.post-step` is not empty:
+
+```
+Task(siat-hook-runner, {
+    hooks: final_hooks.post-step,
+    step: step_name,
+    result: step_output
+})
+```
+
+### 9. Report Next Steps
+
+Tell user:
+- What was completed
+- Next step in workflow (if any)
+- How to continue
 
 ## Example Interactions
+
+### No arguments (navigate)
 
 ```
 User: /siat:do
 
-Claude:
-[specs 폴더 스캔하여 미완료 태스크 확인]
+Claude: [Task(siat-navigator)]
 
 📋 진행 중인 태스크:
 
 1. create-header
-   ✅ plan (완료)
-   ⬚ implement (미완료)
+   ✅ plan
+   ⬚ implement
 
-2. add-login
-   ✅ plan (완료)
-   ⬚ implement (미완료)
-
-[AskUserQuestion으로 선택 UI 표시]
+[AskUserQuestion]
 - create-header → implement 진행
-- add-login → implement 진행
 - 새 태스크 시작
-
-[사용자가 선택할 때까지 대기. 절대 자동 실행하지 않음]
 ```
 
-```
-User: /siat:do plan 로그인 기능 만들어줘
-
-Claude:
-[plan 단계 바로 실행]
-```
+### With step (manual mode)
 
 ```
-User: /siat:do 로그인 기능 만들어줘
+User: /siat:do plan 로그인 기능
 
-Claude:
-[첫 번째 스텝(plan)부터 시작]
+Claude: [pre-step hooks via Task(siat-hook-runner)]
+        [execute plan step in main context]
+        [post-step hooks via Task(siat-hook-runner)]
+
+        ✅ plan.md 저장 완료
+
+        다음: implement
 ```
+
+### With --auto flag
+
+```
+User: /siat:do --auto plan 로그인 기능
+
+Claude: [pre-step hooks via Task(siat-hook-runner)]
+        [Task(siat-step-executor) - isolated]
+        [post-step hooks via Task(siat-hook-runner)]
+
+        ✅ plan.md 저장 완료 (auto 모드)
+
+        Summary:
+        - JWT 인증 방식 선택
+        - 3개 파일 수정 예정
+
+        다음: implement
+```
+
+## Important
+
+- Keep orchestration lightweight
+- Delegate to agents via Task tool
+- Hooks always run via siat-hook-runner (isolated)
+- Step execution depends on mode

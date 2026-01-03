@@ -11,9 +11,6 @@ outputs:
   - 어떤 접근법으로 구현할지
   - 어떤 파일들을 수정/생성할지
   - 예상되는 리스크나 주의사항
-
-approval:
-  required: true
 ---
 
 # Plan

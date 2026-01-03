@@ -87,6 +87,23 @@ Claude Code를 위한 스킬 대장간.
 
 ---
 
+### siat
+
+> Spec-driven development workflow. 팀별 워크플로우를 정의하고 문서 기반으로 진행합니다.
+
+```bash
+/plugin install siat@blacksmith
+```
+
+**When to use**
+- 복잡한 기능을 단계별로 진행하고 싶을 때
+- 각 단계의 컨텍스트를 분리하고 싶을 때
+- 팀만의 워크플로우(plan → review → implement 등)를 정의하고 싶을 때
+
+[자세한 문서 보기](./plugins/siat/README.md)
+
+---
+
 ## Full Set
 
 전부 설치:
@@ -97,4 +114,5 @@ Claude Code를 위한 스킬 대장간.
 /plugin install forge@blacksmith
 /plugin install look-back@blacksmith
 /plugin install format-response@blacksmith
+/plugin install siat@blacksmith
 ```

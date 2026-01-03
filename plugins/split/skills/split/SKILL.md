@@ -5,139 +5,133 @@ description: Break down complex tasks into small, focused subtasks. Use when fac
 
 # Split
 
-## Purpose
+## Why Split?
 
-Large tasks are error-prone. By breaking them into small, well-defined pieces, each step becomes:
-- Easier to verify
-- Less likely to introduce bugs
-- Recoverable if something goes wrong
-- Trackable for progress
+A에서 B로 가는 과정에는 수많은 판단이 필요하다.
+각 판단은 실수할 수 있는 지점이다.
+
+```
+복잡한 태스크 = 판단이 많다 = 실수 가능성 높음
+단순한 스텝들 = 판단이 적다 = 실수 가능성 낮음
+```
+
+Split의 목표: **하나의 스텝에 하나의 판단만** 남기기
 
 ## When to Use
 
-- Task involves multiple files or components
-- Implementation has several distinct phases
-- Risk of breaking existing functionality
-- Task could take more than a few minutes
-- Multiple approaches need to be evaluated
-- Changes have dependencies on each other
+- 여러 판단이 엮여있는 복잡한 태스크
+- 중간에 잘못되면 되돌리기 어려운 작업
+- "이거 한 번에 하면 뭔가 놓칠 것 같은데..." 싶을 때
 
-## Instructions
+## Core Principle
 
-### Step 1: Understand the Full Scope
+### 판단 지점을 분리하라
 
-Before splitting, understand the complete task:
+나쁜 예:
+> "사용자 인증 시스템을 개선해"
 
-1. **Read relevant code** - Don't plan blindly
-2. **Identify all affected areas** - Files, functions, tests
-3. **Map dependencies** - What must happen before what?
-4. **Note integration points** - Where pieces connect
+이 안에는 수많은 판단이 숨어있다:
+- 어떤 부분을 개선? (보안? 속도? UX?)
+- 현재 구조는 어떻게 되어있지?
+- 무엇을 먼저 해야 하지?
+- 기존 기능에 영향은?
 
-### Step 2: Identify Natural Boundaries
+좋은 예:
+> 1. 현재 인증 흐름 파악
+> 2. 개선이 필요한 부분 나열
+> 3. 우선순위 결정
+> 4. 첫 번째 항목 수정
+> 5. 동작 확인
+> ...
 
-Split along these lines:
+각 스텝은 **하나의 명확한 결과**만 낸다.
 
-1. **By layer**: Database -> API -> UI
-2. **By feature**: Core logic -> Edge cases -> Error handling
-3. **By file/component**: One component at a time
-4. **By operation**: Read -> Transform -> Write
-5. **By risk**: Safe changes first, risky changes last
+## How to Split
 
-### Step 3: Create Atomic Subtasks
+### Step 1: 현재 상태 파악
 
-Each subtask should be:
+먼저 상황을 이해한다. 이해 없이 계획하면 잘못된 계획이 나온다.
 
-- **Independent**: Completable without other pending subtasks
-- **Verifiable**: Can confirm it works before moving on
-- **Small**: 5-15 minutes of focused work
-- **Specific**: Clear what "done" looks like
+- 무엇이 존재하는가?
+- 무엇이 목표인가?
+- 제약 조건은?
 
-Good subtask:
-"Add email validation to the signup form's email field"
+### Step 2: A → B 경로의 판단 지점 나열
 
-Bad subtask:
-"Improve form validation" (too vague, scope unclear)
+목표까지 가는 길에서 "선택"이나 "결정"이 필요한 순간들을 찾는다.
 
-### Step 4: Order by Dependencies and Risk
+예시 - "보고서 작성":
+- 어떤 데이터를 쓸지 → 판단
+- 어떤 구조로 정리할지 → 판단
+- 어떤 톤으로 쓸지 → 판단
+- 무엇을 강조할지 → 판단
 
-Arrange subtasks so that:
-1. Prerequisites come before dependents
-2. Foundation work comes before features
-3. Low-risk changes come before high-risk ones
-4. Reversible changes come before irreversible ones
+### Step 3: 각 판단을 독립된 스텝으로
 
-### Step 5: Document the Plan
+판단 하나 = 스텝 하나
 
-Use the todo list to track:
-- Each subtask with clear description
-- Current status (pending/in_progress/completed)
-- Any blockers or notes discovered
+```
+AS-IS: "보고서를 작성해"
 
-### Step 6: Execute One at a Time
+TO-BE:
+1. 필요한 데이터 수집
+2. 데이터에서 핵심 인사이트 3개 추출
+3. 보고서 목차 구성
+4. 각 섹션 초안 작성
+5. 전체 검토 및 수정
+```
 
-For each subtask:
-1. Mark as in_progress
-2. Focus only on that subtask
-3. Verify it works
-4. Mark as completed
-5. Move to next
+### Step 4: 순서 정하기
 
-Do NOT:
-- Work on multiple subtasks simultaneously
-- Skip verification steps
-- Change scope mid-subtask
+- 앞 스텝의 결과가 다음 스텝에 필요한 순서로
+- 되돌리기 쉬운 것 먼저
+- 확실한 것 먼저, 불확실한 것 나중에
 
-## Splitting Strategies by Task Type
+### Step 5: 실행
 
-### New Feature
-1. Design data structures/interfaces
-2. Implement core logic (happy path)
-3. Add input validation
-4. Add error handling
-5. Add edge cases
-6. Add tests
-7. Update documentation (if needed)
+한 번에 하나씩:
+1. 현재 스텝만 집중
+2. 완료 확인
+3. 다음으로
 
-### Bug Fix
-1. Reproduce the bug
-2. Identify root cause
-3. Write failing test
-4. Implement fix
-5. Verify test passes
-6. Check for similar bugs elsewhere
+## Good Step vs Bad Step
 
-### Refactoring
-1. Ensure tests exist (add if missing)
-2. Make one structural change
-3. Verify tests still pass
-4. Repeat until done
+### Good Step
+- 하나의 명확한 결과물
+- 완료 여부 판단 가능
+- 다음 스텝과 독립적
 
-### Migration
-1. Add new alongside old
-2. Update consumers one by one
-3. Verify each consumer works
-4. Remove old code
-5. Clean up
+예: "A 파일에서 B 정보 추출"
 
-## Example
+### Bad Step
+- 여러 판단이 섞임
+- "잘 했는지" 애매함
+- 범위가 불명확
 
-Task: "Add user profile picture upload"
+예: "전체적으로 개선"
 
-Split into:
-1. Add `profilePictureUrl` field to user model/schema
-2. Create file upload API endpoint (accepts image, returns URL)
-3. Add image validation (size, type, dimensions)
-4. Create storage integration (S3/local/etc)
-5. Add upload UI component with preview
-6. Connect UI to API endpoint
-7. Display profile picture in existing UI locations
-8. Add error handling for upload failures
-9. Add tests for upload flow
+## Splitting Patterns
 
-## Anti-patterns to Avoid
+### 조사 → 결정 → 실행 → 검증
+가장 기본적인 패턴. 대부분의 태스크에 적용 가능.
 
-- **Over-splitting**: Don't create 50 subtasks for a simple feature
-- **Under-splitting**: Don't have subtasks that take hours
-- **Vague subtasks**: "Do the backend stuff" is not specific
-- **Ignoring dependencies**: Don't plan to build UI before API exists
-- **Rigid adherence**: Adjust the plan if you learn new information
+### 부분 → 부분 → 부분 → 통합
+독립적인 영역들을 각각 처리 후 합치기.
+
+### 작은 것 → 큰 것
+쉽고 확실한 것부터 처리해서 momentum 확보.
+
+### 핵심 → 부가
+가장 중요한 것 먼저, 나머지는 그 다음.
+
+## Anti-patterns
+
+- **Over-splitting**: 너무 잘게 쪼개서 overhead가 더 큼
+- **Under-splitting**: 여전히 여러 판단이 한 스텝에 섞임
+- **Vague step**: "적절히 처리" 같은 애매한 스텝
+- **Wrong order**: 의존관계 무시한 순서
+
+## Remember
+
+> 스텝이 단순할수록 실수가 줄어든다.
+> 판단이 분리될수록 검증이 쉬워진다.

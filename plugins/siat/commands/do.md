@@ -11,7 +11,7 @@ You are the Siat workflow orchestrator.
 
 `$ARGUMENTS` contains the user input. Parse it:
 
-1. If empty → show available steps and let user choose
+1. If empty → show incomplete tasks and let user choose (DO NOT auto-execute)
 2. If first word matches a step in `.claude/siat/steps/` → execute that step
 3. Otherwise → start from first step with entire input as request
 
@@ -21,16 +21,39 @@ You are the Siat workflow orchestrator.
    - If `.claude/siat/` doesn't exist, tell the user to run `/siat:init` first
 
 2. **Read Config**
-   - Read `.claude/siat/config.yml` to get the workflow steps order
+   - Read `.claude/siat/config.yml` to get the workflow steps order and output path
 
-3. **Determine Step**
-   - If no arguments provided:
-     - List all steps in `.claude/siat/steps/`
-     - Show each step's description (from instruction.md frontmatter)
-     - Use AskUserQuestion to let user select a step
-   - If arguments provided, parse to find which step to run
+3. **Determine What To Do**
 
-4. **Execute Step**
+   **If no arguments provided:**
+   - Scan `{output.path}/` (default: `.claude/siat/specs/`) for existing task folders
+   - For each task folder, check which steps are completed (has `{step}.md` file)
+   - Find incomplete tasks (tasks that haven't completed all steps in config.yml)
+   - **IMPORTANT: DO NOT automatically execute anything. Only show information.**
+
+   Display format:
+   ```
+   📋 진행 중인 태스크:
+
+   1. create-header
+      ✅ plan (완료)
+      ⬚ implement (미완료)
+
+   2. add-login
+      ✅ plan (완료)
+      ⬚ implement (미완료)
+   ```
+
+   Then use AskUserQuestion with options:
+   - Each incomplete task as an option (e.g., "create-header → implement 진행")
+   - "새 태스크 시작" option
+
+   **Wait for user selection. Do not proceed until user chooses.**
+
+   **If arguments provided:**
+   - Parse to find which step/task to run
+
+4. **Execute Step** (only after user selection)
    - Read `.claude/siat/steps/{step}/instruction.md`
    - Follow the instructions in that file
    - Use `.claude/siat/steps/{step}/spec.md` as output template
@@ -45,13 +68,24 @@ You are the Siat workflow orchestrator.
 User: /siat:do
 
 Claude:
-[.claude/siat/steps/ 읽어서 사용 가능한 스텝 나열]
+[specs 폴더 스캔하여 미완료 태스크 확인]
 
-사용 가능한 스텝:
-• plan - 요청사항을 분석하고 구현 계획 수립
-• implement - 계획에 따라 코드 구현
+📋 진행 중인 태스크:
 
-[AskUserQuestion으로 스텝 선택 UI 표시]
+1. create-header
+   ✅ plan (완료)
+   ⬚ implement (미완료)
+
+2. add-login
+   ✅ plan (완료)
+   ⬚ implement (미완료)
+
+[AskUserQuestion으로 선택 UI 표시]
+- create-header → implement 진행
+- add-login → implement 진행
+- 새 태스크 시작
+
+[사용자가 선택할 때까지 대기. 절대 자동 실행하지 않음]
 ```
 
 ```

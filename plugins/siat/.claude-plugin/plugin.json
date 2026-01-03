@@ -1,8 +1,9 @@
 {
   "name": "siat",
-  "description": "Spec-driven development workflow. Guides you through plan → implement steps with customizable workflow.",
-  "version": "1.3.0",
+  "description": "Spec-driven development workflow. Guides you through customizable workflow steps with hooks and isolated execution.",
+  "version": "2.0.0",
   "author": {
     "name": "eatnug"
-  }
+  },
+  "agents": "./agents/"
 }

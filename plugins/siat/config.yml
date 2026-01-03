@@ -8,3 +8,12 @@ steps:
 
 output:
   path: ".claude/siat/specs"
+
+execution:
+  mode: "manual"  # "manual" | "auto"
+
+hooks:
+  pre-step: []
+    # - agent:navigator
+  post-step: []
+    # - agent:reporter

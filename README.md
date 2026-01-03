@@ -72,6 +72,21 @@ Claude Code를 위한 스킬 대장간.
 
 ---
 
+### format-response
+
+> 응답 포맷을 커스터마이징합니다.
+
+```bash
+/plugin install format-response@blacksmith
+```
+
+**When to use**
+- 터미널 크기에 맞는 출력이 필요할 때
+- 응답 형식을 통일하고 싶을 때
+- template.md로 나만의 포맷 정의하고 싶을 때
+
+---
+
 ## Full Set
 
 전부 설치:
@@ -81,4 +96,5 @@ Claude Code를 위한 스킬 대장간.
 /plugin install split@blacksmith
 /plugin install forge@blacksmith
 /plugin install look-back@blacksmith
+/plugin install format-response@blacksmith
 ```

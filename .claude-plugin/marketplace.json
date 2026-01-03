@@ -23,6 +23,12 @@
       "version": "1.0.0"
     },
     {
+      "name": "format-response",
+      "source": "./plugins/format-response",
+      "description": "Customizable response formatting. Adapts output to terminal size and user preferences.",
+      "version": "1.0.0"
+    },
+    {
       "name": "split",
       "source": "./plugins/split",
       "description": "Break down complex tasks into small, focused subtasks. Reduces errors and makes progress trackable.",

@@ -27,7 +27,30 @@ Examples:
 
 ### 1. Setup Check
 
-If `.claude/siat/` doesn't exist, tell user to run `/siat:init` first.
+Check if siat is properly set up:
+
+```
+Required:
+- .claude/siat/config.yml     → 워크플로우 설정
+- .claude/siat/steps/         → 스텝 정의 (최소 1개)
+
+Optional:
+- .claude/siat/constitution.md → 전역 원칙
+```
+
+**If required files missing:**
+
+```
+⚠️ Siat이 설정되지 않았습니다.
+
+누락된 항목:
+- config.yml
+- steps/
+
+→ /siat:init 으로 설정을 시작하세요.
+```
+
+Stop execution and wait for user to run init.
 
 ### 2. Read Config
 
@@ -37,6 +60,15 @@ Read `.claude/siat/config.yml`:
 - `execution.mode`: "manual" or "auto"
 - `hooks.pre-step`: hooks to run before step
 - `hooks.post-step`: hooks to run after step
+
+### 2.5 Read Constitution
+
+If `.claude/siat/constitution.md` exists, read it. These are global principles that apply to ALL steps:
+
+- **불명확 처리 원칙**: 추측하지 말고 `[NEEDS CLARIFICATION: 질문]` 마커 사용
+- **프로젝트 원칙**: 팀별 규칙
+
+스텝 실행 시 이 원칙들을 준수해야 합니다.
 
 ### 3. Determine Execution Mode
 

@@ -10,6 +10,10 @@ outputs:
   - 구현된 코드
   - 테스트 코드
   - 구현 결과 문서
+
+hooks:
+  post-step:
+    - agent:siat-gh-pr-creator
 ---
 
 # Implement (구현)

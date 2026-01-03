@@ -27,7 +27,30 @@ Examples:
 
 ### 1. Setup Check
 
-If `.claude/siat/` doesn't exist, tell user to run `/siat:init` first.
+Check if siat is properly set up:
+
+```
+Required:
+- .claude/siat/config.yml     → 워크플로우 설정
+- .claude/siat/steps/         → 스텝 정의 (최소 1개)
+
+Optional:
+- .claude/siat/constitution.md → 전역 원칙
+```
+
+**If required files missing:**
+
+```
+⚠️ Siat이 설정되지 않았습니다.
+
+누락된 항목:
+- config.yml
+- steps/
+
+→ /siat:init 으로 설정을 시작하세요.
+```
+
+Stop execution and wait for user to run init.
 
 ### 2. Read Config
 

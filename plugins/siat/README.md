@@ -122,62 +122,82 @@ hooks:
 ## 빠른 시작
 
 ```bash
-# 프로젝트에 siat 초기화
+# 1. 프로젝트에 siat 초기화 (대화형)
 /siat:init
 
-# 워크플로우 실행
-/siat:do plan "로그인 기능 만들어줘"
+# 2. 워크플로우 시작
+/siat:do spec "로그인 기능 만들어줘"
 
-# 다음 스텝 찾기
+# 3. 다음 스텝 진행
 /siat:do
 ```
 
 ## 디렉토리 구조
 
-### 플러그인 구조
+### 시스템 vs 유저 파일
+
+Siat은 **시스템 파일**(플러그인)과 **유저 파일**(프로젝트)을 분리합니다:
+
+| 구분 | 위치 | 업데이트 | 수정 |
+|------|------|----------|------|
+| 시스템 | 플러그인 설치 경로 | 플러그인 업데이트 시 자동 | ❌ |
+| 유저 | `.claude/siat/` | 수동 | ✅ 커스터마이징 |
+
+### 플러그인 구조 (시스템)
 
 ```
 plugins/siat/
-├── agents/                    # 제공 에이전트
-│   ├── hook-runner.md         # 훅 실행
-│   ├── navigator.md           # 다음 스텝 찾기
-│   ├── reporter.md            # 결과 리포트
-│   └── step-executor.md       # 스텝 실행 (auto 모드)
+├── agents/                    # 유틸리티 에이전트 (수정 X)
+│   ├── hook-runner.md
+│   ├── navigator.md
+│   ├── reporter.md
+│   └── step-executor.md
 ├── commands/
-│   └── do.md                  # 오케스트레이터
+│   ├── do.md                  # 워크플로우 실행
+│   └── init.md                # 프로젝트 초기화
 ├── skills/
-│   └── siat/SKILL.md          # 규칙 및 스키마
-├── steps/                     # 기본 스텝 예시
-│   ├── plan/
-│   └── implement/
-├── config.yml                 # 기본 설정
-└── constitution.md            # 전역 원칙 템플릿
+│   └── siat/SKILL.md
+└── templates/                 # 초기화 시 복사되는 템플릿
+    ├── config.yml
+    ├── constitution.md
+    └── steps/
+        ├── spec/
+        ├── design/
+        └── implement/
 ```
 
-### 프로젝트 구조 (초기화 후)
+### 프로젝트 구조 (유저, 초기화 후)
 
 ```
 .claude/siat/
-├── config.yml                 # 워크플로우 설정
+├── config.yml                 # 워크플로우 설정 (커스터마이징)
 ├── constitution.md            # 전역 원칙 (커스터마이징)
-├── steps/                     # 스텝 정의
-│   ├── plan/
+├── steps/                     # 스텝 정의 (커스터마이징)
+│   ├── spec/
 │   │   ├── instruction.md     # 실행 지침
 │   │   └── spec.md            # 결과 템플릿
+│   ├── design/
 │   └── implement/
-│       ├── instruction.md
-│       └── spec.md
-└── specs/                     # 실행 결과물 (태스크별 폴더)
-    ├── create-header/         # 태스크 1
-    │   ├── plan.md
-    │   ├── plan.report.md     # 리포트 (reporter 훅)
+└── specs/                     # 실행 결과물 (자동 생성)
+    ├── create-header/
+    │   ├── spec.md
+    │   ├── design.md
     │   └── implement.md
-    ├── add-login/             # 태스크 2
-    │   ├── plan.md
-    │   └── implement.md
-    └── fix-bug-123/           # 태스크 3
-        └── plan.md            # 진행 중
+    └── add-login/
+        └── spec.md            # 진행 중
 ```
+
+### 초기화 (`/siat:init`)
+
+대화형으로 프로젝트 설정:
+
+```bash
+/siat:init
+```
+
+- 필요한 파일만 생성 (기존 파일 보존)
+- 각 항목 설명 후 선택 가능
+- 플러그인 업데이트 후 새 기능 안내
 
 ## 설정
 

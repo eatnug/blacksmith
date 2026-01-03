@@ -1,9 +1,16 @@
 {
   "name": "siat",
   "description": "Spec-driven development workflow. Guides you through customizable workflow steps with hooks and isolated execution.",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": {
     "name": "eatnug"
   },
-  "agents": "./agents/"
+  "agents": [
+    "./agents/gh-issue-creator.md",
+    "./agents/gh-pr-creator.md",
+    "./agents/hook-runner.md",
+    "./agents/navigator.md",
+    "./agents/reporter.md",
+    "./agents/step-executor.md"
+  ]
 }

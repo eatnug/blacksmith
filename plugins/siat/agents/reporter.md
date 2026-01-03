@@ -2,7 +2,6 @@
 name: siat-reporter
 description: Generate summary report after step execution and save it
 tools: Read, Write, Glob
-model: haiku
 ---
 
 # Reporter

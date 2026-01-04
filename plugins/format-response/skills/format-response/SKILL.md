@@ -1,6 +1,6 @@
 ---
 name: format-response
-description: Customizable response formatting. Adapts output to terminal size and user preferences.
+description: Format all responses according to terminal width and template rules. Use automatically on EVERY response before answering the user. Check terminal width first, then apply formatting rules from template.md to ensure consistent, readable output.
 ---
 
 # Format Response

@@ -1,7 +1,7 @@
 {
   "name": "format-response",
-  "description": "Customizable response formatting. Adapts output to terminal size and user preferences.",
-  "version": "1.0.0",
+  "description": "Format all responses according to terminal width and template rules. Use automatically on EVERY response.",
+  "version": "1.1.0",
   "author": {
     "name": "eatnug"
   }

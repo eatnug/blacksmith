@@ -1,8 +1,9 @@
 workflow:
   name: "blacksmith"
-  description: "Blacksmith 레포 워크플로우: spec → design → implement + GitHub 연동"
+  description: "Blacksmith 레포 워크플로우: ideation → spec → design → implement + GitHub 연동"
 
 steps:
+  - ideation
   - spec
   - design
   - implement

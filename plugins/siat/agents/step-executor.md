@@ -54,17 +54,19 @@ You receive:
 
 ## Output
 
-Return a brief summary of what was done:
+Return a summary of the generated spec:
 
 ```
 Step: {step}
 Task: {task}
 Output: {path-to-saved-spec}
 
-Summary:
-- Key point 1
-- Key point 2
-- Key point 3
+## Spec Summary
+
+(Summarize the key content of the generated spec.md - decisions made,
+components identified, implementation approach, etc.
+This should give the main context enough info to understand what was produced
+without reading the full file.)
 ```
 
 ## Error Handling

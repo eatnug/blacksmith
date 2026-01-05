@@ -25,32 +25,21 @@ Examples:
 
 ## Execution Flow
 
-### 1. Setup Check
+### 1. Setup Check (Lightweight)
 
-Check if siat is properly set up:
+Run ONE command to verify setup:
 
-```
-Required:
-- .claude/siat/config.yml     → 워크플로우 설정
-- .claude/siat/steps/         → 스텝 정의 (최소 1개)
-
-Optional:
-- .claude/siat/constitution.md → 전역 원칙
+```bash
+ls .claude/siat/
 ```
 
-**If required files missing:**
+Check output:
+- `config.yml` exists? ✓
+- `steps/` folder exists? ✓
 
-```
-⚠️ Siat이 설정되지 않았습니다.
+**If either missing:** Tell user to run `/siat:init` and stop.
 
-누락된 항목:
-- config.yml
-- steps/
-
-→ /siat:init 으로 설정을 시작하세요.
-```
-
-Stop execution and wait for user to run init.
+**IMPORTANT:** Do NOT search for all step files. Just verify the folder exists.
 
 ### 2. Read Config
 
@@ -161,58 +150,6 @@ Tell user:
 - What was completed
 - Next step in workflow (if any)
 - How to continue
-
-## Example Interactions
-
-### No arguments (navigate)
-
-```
-User: /siat:do
-
-Claude: [Task(siat-navigator)]
-
-📋 진행 중인 태스크:
-
-1. create-header
-   ✅ plan
-   ⬚ implement
-
-[AskUserQuestion]
-- create-header → implement 진행
-- 새 태스크 시작
-```
-
-### With step (manual mode)
-
-```
-User: /siat:do plan 로그인 기능
-
-Claude: [pre-step hooks via Task(siat-hook-runner)]
-        [execute plan step in main context]
-        [post-step hooks via Task(siat-hook-runner)]
-
-        ✅ plan.md 저장 완료
-
-        다음: implement
-```
-
-### With --auto flag
-
-```
-User: /siat:do --auto plan 로그인 기능
-
-Claude: [pre-step hooks via Task(siat-hook-runner)]
-        [Task(siat-step-executor) - isolated]
-        [post-step hooks via Task(siat-hook-runner)]
-
-        ✅ plan.md 저장 완료 (auto 모드)
-
-        Summary:
-        - JWT 인증 방식 선택
-        - 3개 파일 수정 예정
-
-        다음: implement
-```
 
 ## Important
 

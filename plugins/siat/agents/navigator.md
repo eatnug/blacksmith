@@ -16,20 +16,36 @@ User wants to start or continue a task but isn't sure which step to run.
 ## Process
 
 1. **Read config.yml**
-   - Get workflow steps order
-   - Get output path (default: `.claude/siat/specs`)
+   - Get workflow steps order (e.g., `[brainstorm, spec, plan, implement]`)
+   - Get `output.path` value (e.g., `"docs"`, `".claude/siat/specs"`)
+   - **CRITICAL:** Use the actual `output.path` value, NOT hardcoded paths
 
-2. **Scan specs folder**
-   - Find existing task folders
-   - Check which steps are completed (has `{step}.md` file)
+2. **Scan output folders for existing tasks**
+
+   Search for task files in BOTH folder structures:
+
+   **Structure A: Task-centric** `{output.path}/{task-slug}/{step}.md`
+   ```
+   Glob("{output.path}/*/*.md")
+   ```
+
+   **Structure B: Step-centric** `{output.path}/{step}s/{task-slug}.md`
+   ```
+   Glob("{output.path}/brainstorms/*.md")
+   Glob("{output.path}/specs/*.md")
+   Glob("{output.path}/plans/*.md")
+   ... (for each step in workflow)
+   ```
+
+   Build task list from found files.
 
 3. **Analyze request**
    - Is this a new task or continuing existing?
-   - Match request to existing tasks if possible
+   - Match request to existing task slugs
 
 4. **Determine next step**
    - For new task: first step in workflow
-   - For existing task: first incomplete step
+   - For existing task: first incomplete step (check which step files exist)
 
 ## Output Format
 
@@ -43,30 +59,33 @@ Remaining: [step3, step4]
 
 ## Example
 
-Input: "헤더 만들고 싶어"
-
-Output:
+**Config:**
+```yaml
+output:
+  path: "docs"
+steps:
+  - brainstorm
+  - spec
+  - plan
+  - implement
 ```
-Task: create-header
-Status: new
+
+**Input:** "csq-cli-mvp"
+
+**Search performed:**
+```
+Read .claude/siat/config.yml → output.path = "docs"
+Glob("docs/*/*.md")           → check task-centric
+Glob("docs/brainstorms/*.md") → found csq-cli-mvp.md
+Glob("docs/specs/*.md")       → found csq-cli-mvp.md
+Glob("docs/plans/*.md")       → empty
+```
+
+**Output:**
+```
+Task: csq-cli-mvp
+Status: continuing
 Next Step: plan
-Completed: []
+Completed: [brainstorm, spec]
 Remaining: [plan, implement]
-```
-
-Input: (no specific request, just checking)
-
-Output:
-```
-Incomplete Tasks:
-
-1. create-header
-   Completed: [plan]
-   Next Step: implement
-
-2. add-login
-   Completed: [plan]
-   Next Step: implement
-
-Recommendation: Continue with "create-header → implement"
 ```

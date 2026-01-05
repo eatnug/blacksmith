@@ -25,32 +25,20 @@ Examples:
 
 ## Execution Flow
 
-### 1. Setup Check (Lightweight)
+### 1. Read Config
 
-Run ONE command to verify setup:
+Read `.claude/siat/config.yml`.
 
-```bash
-ls .claude/siat/
-```
+**If file not found:** Tell user to run `/siat:init` and stop.
 
-Check output:
-- `config.yml` exists? ✓
-- `steps/` folder exists? ✓
-
-**If either missing:** Tell user to run `/siat:init` and stop.
-
-**IMPORTANT:** Do NOT search for all step files. Just verify the folder exists.
-
-### 2. Read Config
-
-Read `.claude/siat/config.yml`:
+Extract:
 - `steps`: workflow step order
 - `output.path`: where specs are saved
 - `execution.mode`: "manual" or "auto"
 - `hooks.pre-step`: hooks to run before step
 - `hooks.post-step`: hooks to run after step
 
-### 2.5 Read Constitution
+### 2. Read Constitution
 
 If `.claude/siat/constitution.md` exists, read it. These are global principles that apply to ALL steps:
 
@@ -59,7 +47,7 @@ If `.claude/siat/constitution.md` exists, read it. These are global principles t
 
 스텝 실행 시 이 원칙들을 준수해야 합니다.
 
-### 3. Determine Execution Mode
+### 3. Determine Mode
 
 ```
 if --auto flag:
@@ -100,7 +88,7 @@ final_hooks.post-step = config.hooks.post-step + step.hooks.post-step
 
 Global hooks run first, then step-specific hooks.
 
-### 6. Execute Pre-Step Hooks
+### 6. Pre-Step Hooks
 
 If `final_hooks.pre-step` is not empty:
 
@@ -132,7 +120,7 @@ Execute step directly in main context:
 2. Follow instructions
 3. Save output using spec.md template
 
-### 8. Execute Post-Step Hooks
+### 8. Post-Step Hooks
 
 If `final_hooks.post-step` is not empty:
 
@@ -144,7 +132,7 @@ Task(siat-hook-runner, {
 })
 ```
 
-### 9. Report Next Steps
+### 9. Report
 
 Tell user:
 - What was completed

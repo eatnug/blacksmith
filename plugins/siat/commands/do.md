@@ -25,18 +25,21 @@ Examples:
 
 ## Execution Flow
 
-### 1. Setup Check
+### 1. Setup Check (Lightweight)
 
-**⚠️ Use Bash `ls`, NOT Glob/Search**
+Run ONE command to verify setup:
 
 ```bash
 ls .claude/siat/
 ```
 
-See `config.yml` and `steps/` in output? → Continue.
-Missing? → Tell user to run `/siat:init` and stop.
+Check output:
+- `config.yml` exists? ✓
+- `steps/` folder exists? ✓
 
-**NEVER use Glob/Search patterns like `steps/**/instruction.md`.**
+**If either missing:** Tell user to run `/siat:init` and stop.
+
+**IMPORTANT:** Do NOT search for all step files. Just verify the folder exists.
 
 ### 2. Read Config
 

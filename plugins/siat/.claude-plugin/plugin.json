@@ -1,11 +1,13 @@
 {
   "name": "siat",
-  "description": "Spec-driven development workflow. Guides you through customizable workflow steps with hooks and isolated execution.",
-  "version": "3.6.2",
+  "description": "Template-based workflow with learning. Supports feature, bugfix, UI, refactor templates with checksum-based sync and knowledge accumulation.",
+  "version": "4.0.0",
   "author": {
     "name": "eatnug"
   },
   "agents": [
+    "./agents/codebase-analyzer.md",
+    "./agents/schema-validator.md",
     "./agents/gh-issue-creator.md",
     "./agents/gh-pr-creator.md",
     "./agents/hook-runner.md",

@@ -37,8 +37,8 @@
     {
       "name": "siat",
       "source": "./plugins/siat",
-      "description": "Spec-driven development workflow with ideation phase. Guides you through ideation → spec → design → implement steps.",
-      "version": "3.6.2"
+      "description": "Template-based workflow with learning. Supports feature, bugfix, UI, refactor templates with checksum-based sync and knowledge accumulation.",
+      "version": "4.0.0"
     }
   ]
 }

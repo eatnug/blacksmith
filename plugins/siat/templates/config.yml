@@ -1,12 +1,30 @@
 workflow:
-  name: "default"
-  description: "체계적인 워크플로우: ideation → spec → design → implement"
+  name: "siat-v2"
+  description: "템플릿 기반 워크플로우 with learning"
 
-steps:
-  - ideation
-  - spec
-  - design
-  - implement
+  # 공통 진입점 - 모든 템플릿이 여기서 시작
+  entry: clarify
+
+  # 템플릿 정의
+  templates:
+    feature:
+      description: "새 기능 추가"
+      steps: [spec, design, implement]
+
+    bugfix:
+      description: "버그 수정"
+      steps: [reproduce, root-cause, fix, verify]
+
+    ui:
+      description: "UI/화면 작업"
+      steps: [spec, visual-design, implement]
+
+    refactor:
+      description: "코드 리팩토링"
+      steps: [scope, design, implement, verify]
+
+  # 기본 템플릿 (clarify에서 판단 못하면)
+  default-template: feature
 
 output:
   path: ".claude/siat/specs"
@@ -14,8 +32,35 @@ output:
 execution:
   mode: "manual"  # "manual" | "auto"
 
+  # 서브태스크 실행 전략
+  sub-agent:
+    enabled: true
+    strategy: "adaptive"  # "adaptive" | "sequential" | "parallel"
+    # adaptive: 환경에 맞게 자동 선택
+    # sequential: 항상 순차 실행
+    # parallel: 가능하면 병렬 실행
+
 hooks:
-  pre-step: []
-    # - agent:navigator
+  pre-step:
+    - agent:schema-validator  # instruction.md 스키마 검증
   post-step: []
-    # - agent:reporter
+  # 워크플로우 완료 후
+  post-workflow:
+    - evaluate  # 평가 단계 자동 실행
+
+# Learning 시스템
+learning:
+  enabled: true
+
+  log:
+    path: ".claude/siat/logs/"
+    retention: 90  # days
+
+  knowledge:
+    path: ".claude/knowledge/"
+    auto-update: true
+
+  improve:
+    auto-analyze: true
+    threshold: 3  # 같은 패턴 N회 이상이면 제안
+    suggestions-path: ".claude/siat/suggestions/"

@@ -25,6 +25,30 @@ Best practice 템플릿을 GitHub에서 다운로드하여 프로젝트에 **강
 
 ---
 
+## Step 0: 체크섬 비교 (--force 아닐 때만)
+
+`--force`가 **아닐 때만** 체크섬 비교 수행:
+
+1. WebFetch로 원격 CHECKSUM 다운로드:
+   - URL: `{base}/CHECKSUM`
+   - prompt: "Return the checksum string exactly as-is, trimmed"
+
+2. Read로 로컬 CHECKSUM 확인:
+   - path: `.claude/siat/CHECKSUM`
+   - 파일 없으면 → 업데이트 필요
+
+3. 체크섬 비교:
+   - **같으면**:
+     ```
+     ✅ 이미 최신 상태입니다.
+
+     강제 업데이트: /blueprint --force
+     ```
+     → 여기서 종료
+   - **다르면** → Step 1로 진행
+
+---
+
 ## Step 1: GitHub에서 템플릿 config.yml fetch
 
 GitHub raw URL base:
@@ -145,7 +169,19 @@ hooks:
 
 ---
 
-## Step 5: 완료 메시지
+## Step 5: CHECKSUM 파일 저장
+
+원격에서 받은 CHECKSUM을 로컬에 저장:
+
+```bash
+Write ".claude/siat/CHECKSUM" with remote checksum string
+```
+
+이후 체크섬 비교에서 사용됨.
+
+---
+
+## Step 6: 완료 메시지
 
 `--force` 사용 시:
 ```

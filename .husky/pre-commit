@@ -1,0 +1,15 @@
+# 템플릿 파일이 staged 되어있는지 확인
+TEMPLATE_DIR="plugins/siat/templates/steps"
+CHECKSUM_FILE="plugins/siat/templates/CHECKSUM"
+
+STAGED_TEMPLATES=$(git diff --cached --name-only | grep "^$TEMPLATE_DIR/.*\.md$")
+
+if [ -n "$STAGED_TEMPLATES" ]; then
+  echo "Template files changed, updating CHECKSUM..."
+
+  NEW_CHECKSUM=$(find "$TEMPLATE_DIR" -type f -name "*.md" | sort | xargs cat | md5)
+  echo "$NEW_CHECKSUM" > "$CHECKSUM_FILE"
+
+  git add "$CHECKSUM_FILE"
+  echo "CHECKSUM updated: $NEW_CHECKSUM"
+fi

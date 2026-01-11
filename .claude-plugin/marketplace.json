@@ -38,7 +38,7 @@
       "name": "siat",
       "source": "./plugins/siat",
       "description": "Template-based workflow with learning. Supports feature, bugfix, UI, refactor templates with checksum-based sync and knowledge accumulation.",
-      "version": "4.0.0"
+      "version": "4.0.1"
     }
   ]
 }

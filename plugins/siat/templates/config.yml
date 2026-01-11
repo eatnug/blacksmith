@@ -20,8 +20,10 @@ output:
 execution:
   mode: "manual"  # "manual" | "auto"
 
+learning:
+  enabled: true   # 스텝 완료 후 피드백 수집 여부
+
 hooks:
   pre-step: []
-  post-step:
-    - agent:siat-learner
+  post-step: []
   post-workflow: []

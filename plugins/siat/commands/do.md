@@ -54,10 +54,21 @@ argument-hint: "[task-id] [request]"
 
 ```yaml
 ---
+# 필수 필드
 id: string          # 태스크 식별자
 steps: string[]     # 남은 스텝들 (현재 포함)
 parent: string|null # 이전 단계 문서 (step/id)
 children: string[]  # 다음 단계 문서들 (step/id)
+
+# 선택 필드
+open_questions:     # 미해결 질문 (do.md에서 처리)
+  - question: string
+    context: string   # 왜 이 질문이 필요한지
+    resolved: boolean
+    answer: string|null
+
+learn: string[]     # 이 스텝에서 배운 것 (코드베이스/도메인)
+feedback: string[]  # 사용자 피드백 (프로세스/instruction)
 ---
 ```
 
@@ -157,7 +168,60 @@ ls {output.path}/{step}/{task_id}.md
 **파일이 존재하면:**
 - frontmatter 확인 (id, steps, parent, children)
 - 본문에 스텝 결과물이 포함되어 있는지 확인
-- 모두 확인되면 스텝 완료
+- 모두 확인되면 다음 단계로
+
+#### 3.7 Resolve Open Questions
+
+spec 문서의 `open_questions`를 확인:
+
+```yaml
+open_questions:
+  - question: "인증 방식은 JWT? Session?"
+    context: "API 설계에 영향"
+    resolved: false
+    answer: null
+```
+
+**미해결 질문이 있으면:**
+
+1. `AskUserQuestion`으로 사용자에게 질문 (context 포함)
+2. 답변 처리 **(둘 다 필수)**:
+
+   **a) Frontmatter 업데이트:**
+   ```yaml
+   open_questions:
+     - question: "인증 방식은 JWT? Session?"
+       context: "API 설계에 영향"
+       resolved: true
+       answer: "JWT로 진행"
+   ```
+
+   **b) 본문 업데이트:**
+   - 해당 질문이 언급된 부분을 찾아서
+   - 답변 내용이 자연스럽게 반영되도록 수정
+   - 형식은 자유 (문맥에 맞게)
+
+3. **두 곳 모두 업데이트하지 않으면 완료로 처리하지 않음**
+
+**모든 질문이 resolved면:** 다음 단계로
+
+#### 3.8 Collect Feedback (optional)
+
+`config.learning.enabled: true`인 경우:
+
+1. 사용자에게 질문:
+   ```
+   "이 단계({step})에 대한 피드백이 있나요? (없으면 스킵)"
+   ```
+
+2. 피드백이 있으면:
+   - spec 문서의 `feedback` 배열에 추가
+   - `learn` 배열에 이 스텝에서 발견한 것들 추가 (자동)
+
+3. 피드백이 없으면:
+   - 스킵하고 다음 단계로
+
+**Note:** 이 단계는 메인 컨텍스트에서 실행되므로 사용자 입력이 가능합니다.
 
 ### 4. Handle Fork
 

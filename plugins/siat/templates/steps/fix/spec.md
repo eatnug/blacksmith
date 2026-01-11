@@ -7,32 +7,43 @@ children: ["verify/{task-id}"]
 
 # Fix: {버그 제목}
 
-bug_id: "{연결된 버그 ID}"
-fix_option: "{선택한 옵션 (A/B/...)}"
+**선택한 옵션**: {A/B/...}
 
-changes:
-  - file: "{파일 경로}"
-    type: "modify | create | delete"
-    before: |
-      {수정 전 코드 (발췌)}
-    after: |
-      {수정 후 코드}
-    reason: "{수정 이유}"
+---
 
-tests_added:
-  - file: "{테스트 파일 경로}"
-    description: "{테스트 설명}"
-    type: "regression | edge_case | integration"
+## 변경 사항
 
-validation:
-  existing_tests:
-    total: 0
-    passed: 0
-    failed: 0
-  new_tests:
-    total: 0
-    passed: 0
+### `{파일 경로}` (modify / create / delete)
 
-side_effects:
-  checked: true
-  issues_found: []
+**수정 이유**: {이유}
+
+**Before**
+```
+{수정 전 코드}
+```
+
+**After**
+```
+{수정 후 코드}
+```
+
+---
+
+## 추가된 테스트
+
+- `{테스트 파일 경로}` - {테스트 설명} (regression / edge_case / integration)
+
+---
+
+## 검증
+
+**기존 테스트**: 0 total / 0 passed / 0 failed
+
+**신규 테스트**: 0 total / 0 passed
+
+---
+
+## 사이드 이펙트
+
+- [x] 확인 완료
+- 발견된 문제: 없음

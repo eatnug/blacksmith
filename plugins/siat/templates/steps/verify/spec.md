@@ -7,50 +7,53 @@ children: []
 
 # Verify: {태스크 제목}
 
-bug_id: "{연결된 버그 ID}"
+---
 
-verification:
-  original_bug:
-    reproduced_before_fix: true
-    fixed_after_change: true
-    steps_verified:
-      - step: 1
-        action: "{행동}"
-        result: "pass | fail"
+## 버그 검증 (버그픽스인 경우)
 
-regression:
-  automated:
-    unit_tests:
-      total: 0
-      passed: 0
-      failed: 0
-    integration_tests:
-      total: 0
-      passed: 0
-      failed: 0
-    e2e_tests:
-      total: 0
-      passed: 0
-      failed: 0
+- [x] 수정 전 재현 확인
+- [x] 수정 후 해결 확인
 
-  manual:
-    - feature: "{기능}"
-      test_case: "{테스트 항목}"
-      result: "pass | fail"
-      notes: "{메모}"
+**검증 단계**
+1. {행동} → pass / fail
 
-documentation:
-  changelog_updated: true
-  internal_docs_updated: true
-  user_facing_docs_updated: false
+---
 
-release_readiness:
-  code_review: "approved | pending | not_required"
-  tests_passing: true
-  documentation_complete: true
-  rollback_plan: true
-  ready_to_release: true
+## 회귀 테스트
 
-summary:
-  status: "verified | failed | needs_attention"
-  notes: "{추가 메모}"
+### 자동화
+
+| 종류 | Total | Passed | Failed |
+|------|-------|--------|--------|
+| Unit | 0 | 0 | 0 |
+| Integration | 0 | 0 | 0 |
+| E2E | 0 | 0 | 0 |
+
+### 수동
+
+- {기능} - {테스트 항목} → pass / fail
+
+---
+
+## 문서화
+
+- [ ] Changelog
+- [ ] 내부 문서
+- [ ] 사용자 문서
+
+---
+
+## 릴리즈 준비
+
+- [ ] 코드 리뷰 (approved / pending / not_required)
+- [ ] 테스트 통과
+- [ ] 문서화 완료
+- [ ] 롤백 플랜
+
+---
+
+## 결론
+
+**상태**: verified / failed / needs_attention
+
+{추가 메모}

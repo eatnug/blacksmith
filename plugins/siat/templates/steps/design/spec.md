@@ -7,66 +7,74 @@ children: ["implement/{task-id}"]
 
 # Design: {태스크 제목}
 
-task: "{태스크 요약}"
-version: 1
-status: "draft | review | approved"
+> {태스크 한 줄 요약}
 
-context:
-  related_files:
-    - path: "{파일 경로}"
-      relevance: "{관련성 설명}"
-  patterns_used:
-    - name: "{패턴명}"
-      description: "{설명}"
-  constraints:
-    - "{제약사항}"
+**상태**: draft / review / approved
 
-architecture:
-  overview: "{아키텍처 개요}"
-  components:
-    - name: "{컴포넌트명}"
-      type: "component | hook | util | api"
-      responsibility: "{역할}"
-      location: "{파일 경로}"
-      dependencies: ["{의존성}"]
+---
 
-interfaces:
-  functions:
-    - name: "{함수명}"
-      signature: "{시그니처}"
-      description: "{설명}"
-      params:
-        - name: "{파라미터명}"
-          type: "{타입}"
-          description: "{설명}"
-      returns:
-        type: "{반환 타입}"
-        description: "{설명}"
-      errors:
-        - type: "{에러 타입}"
-          condition: "{발생 조건}"
+## 컨텍스트
 
-  components:
-    - name: "{컴포넌트명}"
-      props:
-        - name: "{prop명}"
-          type: "{타입}"
-          required: true | false
-          description: "{설명}"
+**관련 파일**
+- `{파일 경로}` - {관련성 설명}
 
-data:
-  state:
-    - name: "{상태명}"
-      scope: "local | global"
-      type: "{타입}"
-      initial: "{초기값}"
+**사용 패턴**
+- {패턴명}: {설명}
 
-  flow: |
-    {데이터 흐름 다이어그램 또는 설명}
+**제약사항**
+- {제약사항}
 
-implementation_notes:
-  - "{구현 시 주의사항}"
+---
 
-requirements_mapping:
-  - requirement_id: "REQ-001"
-    covered_by: ["{컴포넌트/함수명}"]
+## 아키텍처
+
+{아키텍처 개요}
+
+### 컴포넌트
+
+**{컴포넌트명}** (`{파일 경로}`)
+- 타입: component / hook / util / api
+- 역할: {역할}
+- 의존: {의존성}
+
+---
+
+## 인터페이스
+
+### 함수
+
+**`{함수명}({파라미터}): {반환타입}`**
+
+{설명}
+
+- `{파라미터명}`: {타입} - {설명}
+- 반환: {반환 설명}
+- 에러: {에러타입} - {발생 조건}
+
+### 컴포넌트 Props
+
+**{컴포넌트명}**
+- `{prop명}`: {타입} (required / optional) - {설명}
+
+---
+
+## 데이터
+
+**상태**
+- `{상태명}` ({scope}): {타입} = {초기값}
+
+**흐름**
+
+{데이터 흐름 설명}
+
+---
+
+## 구현 노트
+
+- {구현 시 주의사항}
+
+---
+
+## 요구사항 매핑
+
+- REQ-001 → {컴포넌트/함수명}

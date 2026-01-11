@@ -7,35 +7,37 @@ children: ["design/{task-id}"]
 
 # PRD: {태스크 제목}
 
-## 요약
+> {태스크 한 줄 요약}
 
-task: "{태스크 요약}"
-version: 1
-status: "draft | review | approved"
+**상태**: draft / review / approved
+
+---
 
 ## 요구사항
 
-requirements:
-  - id: "REQ-001"
-    title: "{요구사항 제목}"
-    description: "{상세 설명}"
-    priority: "must | should | could"
-    acceptance_criteria:
-      - given: "{사전 조건}"
-        when: "{사용자 행동}"
-        then: "{기대 결과}"
-    dependencies: []
+### REQ-001: {요구사항 제목}
 
-  - id: "REQ-002"
-    # ...
+**우선순위**: must / should / could
 
-scope:
-  in:
-    - "{포함 사항}"
-  out:
-    - "{제외 사항}"
+{상세 설명}
 
-assumptions:
-  - "{가정 사항}"
+**인수 조건**
+- Given: {사전 조건}
+- When: {사용자 행동}
+- Then: {기대 결과}
 
-open_questions: []
+---
+
+## 범위
+
+**포함**
+- {포함 사항}
+
+**제외**
+- {제외 사항}
+
+---
+
+## 가정
+
+- {가정 사항}

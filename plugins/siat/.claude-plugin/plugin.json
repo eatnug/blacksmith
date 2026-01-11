@@ -1,7 +1,7 @@
 {
   "name": "siat",
-  "description": "Template-based workflow with learning. Supports feature, bugfix, UI, refactor templates with checksum-based sync and knowledge accumulation.",
-  "version": "4.1.0",
+  "description": "SDD framework with skip-based step control. Steps: clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify.",
+  "version": "4.2.0",
   "author": {
     "name": "eatnug"
   },

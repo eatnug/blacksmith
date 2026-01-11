@@ -2,7 +2,6 @@
 name: implement
 description: 설계를 실제 코드로 구현
 role: "Senior software engineer"
-requires: [spec]
 
 inputs:
   - design 단계의 설계 문서

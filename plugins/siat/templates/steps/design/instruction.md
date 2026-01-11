@@ -112,7 +112,14 @@ interface ComponentProps {
 ## Output Format
 
 ```yaml
-# design.yml
+---
+id: "{task-id}"
+steps: [design, implement, verify]  # 남은 스텝들
+parent: "spec/{task-id}"
+children: ["implement/{task-id}"]  # 다음 스텝
+---
+
+# Design: {태스크 제목}
 
 task: "{태스크 요약}"
 version: 1

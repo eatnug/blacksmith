@@ -1,194 +1,223 @@
 ---
-description: Execute Siat workflow - guides through customizable steps with hooks
-argument-hint: "[--auto] [step] [task-slug|request]"
+description: Execute Siat workflow - document-driven step execution
+argument-hint: "[task-id] [request]"
 ---
 
 # Siat Workflow Orchestrator
 
-You are a lightweight orchestrator for siat workflows.
+문서 기반 워크플로우 실행기. 각 스텝의 spec 문서가 다음 스텝을 결정합니다.
 
 ## Arguments
 
-`$ARGUMENTS` contains the user input. Parse it:
+`$ARGUMENTS` 파싱:
 
-1. `--auto` flag → force auto mode (override config)
-2. First word matches a step → execute that step
-3. Second word matches existing task slug → continue that task
-4. No step specified → start from first step (clarify)
-5. Remaining text → the request (for new tasks)
+1. 기존 task-id가 주어지면 → 해당 태스크 이어서 진행
+2. 텍스트만 주어지면 → 새 태스크 시작 (clarify부터)
 
-Examples:
-- `/siat:do 헤더 만들어줘` → new task, start from clarify
-- `/siat:do implement create-header` → continue existing task
-- `/siat:do --auto implement create-login` → continue in auto mode
+예시:
+- `/siat:do 로그인 페이지 만들어줘` → 새 태스크
+- `/siat:do login-page` → 기존 태스크 이어서
+- `/siat:do spec login-page` → 특정 스텝부터 이어서
+
+## Spec Document Frontmatter
+
+각 스텝은 spec 문서를 생성하며, frontmatter 구조:
+
+```yaml
+---
+id: string          # 태스크 식별자
+steps: string[]     # 남은 스텝들 (현재 포함)
+parent: string|null # 이전 단계 문서 (step/id)
+children: string[]  # 다음 단계 문서들 (step/id)
+---
+```
 
 ## Execution Flow
 
 ### 1. Read Config
 
-Read `.claude/siat/config.yml`.
+`.claude/siat/config.yml` 읽기.
 
-**If file not found:** Tell user to run `/siat:init` and stop.
+**파일 없으면:** `/siat:init` 실행 안내 후 종료.
 
-Extract:
-- `workflow.steps`: step order
-- `workflow.skip_key`: key to read skip list from (default: "skip")
-- `output.path`: where specs are saved
-- `execution.mode`: "manual" or "auto"
-- `hooks.pre-step`: hooks to run before step
-- `hooks.post-step`: hooks to run after step
+추출:
+- `workflow.steps`: 시스템 스텝 목록 (순서)
+- `output.path`: spec 저장 경로
+- `execution.mode`: "manual" | "auto"
 
-### 2. Initialize Context State
+### 2. Find Current State
 
-Maintain these in your context during workflow execution:
+**새 태스크인 경우:**
+- `current_step = "clarify"`
+- `task_id = slugify(request)`
+- `parent = null`
+- `steps = workflow.steps` (config에서)
 
-```
-state = {
-    skip: [],           # steps to skip
-    completed: [],      # completed steps
-    current_step: null  # current step
-}
-```
+**기존 태스크인 경우:**
+- `{output.path}/` 에서 해당 task-id를 가진 최신 문서 찾기
+- 문서의 `children` 확인
+- `children`이 비어있으면 → 완료된 태스크
+- `children`이 있으면 → 다음 스텝 결정
 
-### 3. Read Constitution
+### 3. Execute Step
 
-If `.claude/siat/constitution.md` exists, read it. These are global principles that apply to ALL steps.
+#### 3.1 Read Instruction
 
-### 4. Determine Mode
+`.claude/siat/steps/{step}/instruction.md` 읽기.
 
-```
-if --auto flag:
-    mode = "auto"
-else:
-    mode = config.execution.mode (default: "manual")
-```
+#### 3.2 Pre-Step Hooks
 
-### 5. Execute Steps
+`config.hooks.pre-step`이 있으면 실행.
 
-Iterate through `workflow.steps` in order:
+#### 3.3 Execute
 
-```
-for step in workflow.steps:
-    # Skip check
-    if step in state.skip:
-        print "⏭️ Skipping {step}"
-        continue
+**Manual mode:**
+- 메인 컨텍스트에서 직접 실행
+- instruction.md 따라 진행
+- 사용자와 상호작용
 
-    # Check requires (from step frontmatter)
-    step_config = read steps/{step}/instruction.md frontmatter
-    if step_config.requires:
-        for required in step_config.requires:
-            if required not in state.completed:
-                # Run required step first
-                execute(required)
-
-    # Execute step
-    execute(step)
-
-    # Update state
-    state.completed.append(step)
-
-    # Read step output and update skip list
-    step_output = read step's spec.md output
-    if step_output has skip_key:
-        state.skip.extend(step_output[skip_key])
-```
-
-### 6. Execute Single Step
-
-#### 6.1 Merge Hooks
-
-Read step-specific hooks from frontmatter:
-
-```yaml
----
-name: implement
-requires: [spec, design]  # prerequisite steps
-hooks:
-  post-step:
-    - agent:siat-gh-pr-creator
----
-```
-
-Combine: `final_hooks = config.hooks + step.hooks`
-
-#### 6.2 Pre-Step Hooks
-
-If `final_hooks.pre-step` is not empty:
-
-```
-Task(siat-hook-runner, {
-    hooks: final_hooks.pre-step,
-    step: step_name,
-    request: user_request
-})
-```
-
-#### 6.3 Execute
-
-**If mode == "auto":**
-
+**Auto mode:**
 ```
 Task(siat-step-executor, {
     step: step_name,
-    task: task_slug,
-    request: user_request,
-    output_path: config.output.path
+    task_id: task_id,
+    request: request,
+    parent: parent_doc_path
 })
 ```
 
-**If mode == "manual":**
+#### 3.4 Generate Spec Document
 
-Execute step directly in main context:
-1. Read `.claude/siat/steps/{step}/instruction.md`
-2. Follow instructions
-3. Save output to spec.md
+스텝 완료 후 spec 문서 생성:
 
-#### 6.4 Post-Step Hooks
+```yaml
+---
+id: {task_id}
+steps: {remaining_steps}  # 현재 스텝 + 남은 스텝들
+parent: {parent_doc}      # 이전 문서 경로 또는 null
+children: {next_docs}     # 다음 문서 경로들
+---
 
-If `final_hooks.post-step` is not empty:
-
-```
-Task(siat-hook-runner, {
-    hooks: final_hooks.post-step,
-    step: step_name,
-    result: step_output
-})
+{스텝 결과물}
 ```
 
-### 7. Report
+**children 결정:**
+- 다음 스텝이 있으면: `[{next_step}/{task_id}]`
+- fork하면: `[{next_step}/{child1_id}, {next_step}/{child2_id}]`
+- 마지막 스텝이면: `[]`
 
-After each step (manual mode) or workflow completion (auto mode):
-- What was completed
-- What was skipped
-- Next step (if any)
-- How to continue
+저장 위치: `{output.path}/{step}/{task_id}.md`
 
-## Skip List Behavior
+#### 3.5 Post-Step Hooks
 
-The skip list is **cumulative**:
-- Starts empty
-- After clarify runs, its output may contain skip list
-- Any step can add to skip list via output
-- Once a step is in skip list, it stays skipped
+`config.hooks.post-step`이 있으면 실행.
 
-Example flow:
+### 4. Handle Fork
+
+`children`이 2개 이상이면:
+
 ```
-1. clarify runs → outputs skip: [reproduce, root-cause, fix]
-2. state.skip = [reproduce, root-cause, fix]
-3. reproduce → SKIPPED
-4. root-cause → SKIPPED
-5. spec runs → no skip output
-6. design runs → no skip output
-7. implement runs
-8. fix → SKIPPED
-9. verify runs
+for each child in children:
+    child_step = child.split('/')[0]
+    child_id = child.split('/')[1]
+
+    # 각 child에 대해 다음 스텝 실행
+    execute_step(child_step, child_id, parent=current_doc)
+```
+
+Auto mode에서는 병렬 실행 가능.
+
+### 5. Continue or Complete
+
+**Manual mode:**
+- 스텝 완료 후 상태 보고
+- 다음 스텝 안내
+- 사용자가 `/siat:do {task-id}` 로 이어서 진행
+
+**Auto mode:**
+- `children`이 비어있을 때까지 자동 진행
+- fork 시 병렬 처리
+
+### 6. Report
+
+```
+✅ {step} 완료: {task_id}
+
+📄 생성된 문서: {output.path}/{step}/{task_id}.md
+
+📍 현재 상태:
+   - 완료: {completed_steps}
+   - 다음: {next_step} (또는 "완료")
+
+▶️ 계속하려면: /siat:do {task_id}
+```
+
+## Examples
+
+### 새 태스크 시작
+
+```
+> /siat:do 로그인 페이지 만들어줘
+
+🚀 새 태스크 시작: login-page
+📍 현재 스텝: clarify
+
+[clarify 실행...]
+
+✅ clarify 완료
+
+📄 specs/clarify/login-page.md 생성됨
+   - steps: [clarify, spec, design, implement, verify]
+   - children: [spec/login-page]
+
+▶️ 계속하려면: /siat:do login-page
+```
+
+### 태스크 이어서
+
+```
+> /siat:do login-page
+
+📍 태스크: login-page
+📍 현재 스텝: spec (clarify → spec)
+
+[spec 실행...]
+
+✅ spec 완료
+
+📄 specs/spec/login-page.md 생성됨
+   - children: [design/login-page]
+
+▶️ 계속하려면: /siat:do login-page
+```
+
+### Fork 발생
+
+```
+> /siat:do login-system
+
+📍 현재 스텝: clarify
+
+[clarify 분석 결과 fork 결정...]
+
+✅ clarify 완료
+
+📄 specs/clarify/login-system.md 생성됨
+   - children: [spec/login-ui, spec/login-api]
+
+🔀 Fork 감지: 2개 서브태스크
+   - login-ui: UI 구현
+   - login-api: API 구현
+
+▶️ 계속하려면:
+   /siat:do login-ui
+   /siat:do login-api
 ```
 
 ## Important
 
-- Keep orchestration lightweight
-- Delegate to agents via Task tool
-- Maintain skip list in context (not file)
-- Check `requires` before running each step
-- Hooks always run via siat-hook-runner (isolated)
+- 문서 체인이 워크플로우를 결정 (config는 가능한 스텝 목록만)
+- `steps` 배열의 첫 번째 = 현재 스텝
+- `children`이 다음 스텝을 가리킴
+- fork는 `children`이 여러 개일 때 발생
+- `parent` 체인을 따라가면 루트(clarify)에 도달

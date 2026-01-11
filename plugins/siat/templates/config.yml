@@ -1,21 +1,18 @@
 workflow:
   name: "siat"
-  description: "SDD 프레임워크 - 스텝 기반 워크플로우"
+  description: "SDD 프레임워크 - 문서 기반 워크플로우"
 
-  # 전체 스텝 순서 (skip으로 제어)
+  # 시스템에서 사용 가능한 스텝들 (순서대로)
   steps:
-    - clarify        # 분석 및 워크플로우 결정
+    - clarify        # 분석 및 명확화
     - reproduce      # bugfix: 버그 재현
     - root-cause     # bugfix: 원인 분석
-    - spec           # feature/ui: 요구사항 정의
-    - design         # feature: 기술 설계
-    - visual-design  # ui: 시각 설계
-    - implement      # feature/ui: 구현
+    - spec           # 요구사항 정의
+    - design         # 기술 설계
+    - visual-design  # UI/UX 시각 설계
+    - implement      # 구현
     - fix            # bugfix: 버그 수정
     - verify         # 검증
-
-  # skip 목록을 읽을 키 (clarify output에서)
-  skip_key: "skip"
 
 output:
   path: ".claude/siat/specs"
@@ -23,35 +20,7 @@ output:
 execution:
   mode: "manual"  # "manual" | "auto"
 
-  # 서브태스크 실행 전략
-  sub-agent:
-    enabled: true
-    strategy: "adaptive"  # "adaptive" | "sequential" | "parallel"
-    # adaptive: 환경에 맞게 자동 선택
-    # sequential: 항상 순차 실행
-    # parallel: 가능하면 병렬 실행
-
 hooks:
-  pre-step:
-    - agent:schema-validator  # instruction.md 스키마 검증
+  pre-step: []
   post-step: []
-  # 워크플로우 완료 후
-  post-workflow:
-    - evaluate  # 평가 단계 자동 실행
-
-# Learning 시스템
-learning:
-  enabled: true
-
-  log:
-    path: ".claude/siat/logs/"
-    retention: 90  # days
-
-  knowledge:
-    path: ".claude/knowledge/"
-    auto-update: true
-
-  improve:
-    auto-analyze: true
-    threshold: 3  # 같은 패턴 N회 이상이면 제안
-    suggestions-path: ".claude/siat/suggestions/"
+  post-workflow: []

@@ -89,11 +89,22 @@ Then: [기대 결과]
 ## Output Format
 
 ```yaml
-# spec.yml
+---
+id: "{task-id}"
+steps: [spec, design, implement, verify]  # 남은 스텝들
+parent: "clarify/{task-id}"
+children: ["design/{task-id}"]  # 다음 스텝
+---
+
+# Spec: {태스크 제목}
+
+## 요약
 
 task: "{태스크 요약}"
 version: 1
 status: "draft | review | approved"
+
+## 요구사항
 
 requirements:
   - id: "REQ-001"

@@ -1,7 +1,7 @@
 {
   "name": "siat",
-  "description": "SDD framework with skip-based step control. Steps: clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify.",
-  "version": "4.2.0",
+  "description": "SDD framework with document-driven workflow. Each spec document defines the next step via parent/children chain.",
+  "version": "5.0.0",
   "author": {
     "name": "eatnug"
   },

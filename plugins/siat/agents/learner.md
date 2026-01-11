@@ -24,7 +24,6 @@ After a step finishes execution (as post-step hook), gather:
 
 1. **Read context**
    - Read the step's instruction.md
-   - Read SPEC_FRONTMATTER.md for format
    - Read the generated spec document
 
 2. **Identify learnings**

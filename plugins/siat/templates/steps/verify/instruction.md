@@ -1,7 +1,8 @@
 ---
 name: verify
-description: 버그 수정 완료 검증
+description: 수정/구현 완료 검증
 role: "QA engineer"
+requires: [fix, implement]
 
 inputs:
   - fix 단계의 수정 내역

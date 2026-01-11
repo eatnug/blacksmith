@@ -2,6 +2,7 @@
 name: fix
 description: 버그를 수정하는 코드 작성
 role: "Senior software engineer"
+requires: [root-cause]
 
 inputs:
   - root-cause 단계의 분석 문서

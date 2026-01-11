@@ -1,30 +1,21 @@
 workflow:
-  name: "siat-v2"
-  description: "템플릿 기반 워크플로우 with learning"
+  name: "siat"
+  description: "SDD 프레임워크 - 스텝 기반 워크플로우"
 
-  # 공통 진입점 - 모든 템플릿이 여기서 시작
-  entry: clarify
+  # 전체 스텝 순서 (skip으로 제어)
+  steps:
+    - clarify        # 분석 및 워크플로우 결정
+    - reproduce      # bugfix: 버그 재현
+    - root-cause     # bugfix: 원인 분석
+    - spec           # feature/ui: 요구사항 정의
+    - design         # feature: 기술 설계
+    - visual-design  # ui: 시각 설계
+    - implement      # feature/ui: 구현
+    - fix            # bugfix: 버그 수정
+    - verify         # 검증
 
-  # 템플릿 정의
-  templates:
-    feature:
-      description: "새 기능 추가"
-      steps: [spec, design, implement]
-
-    bugfix:
-      description: "버그 수정"
-      steps: [reproduce, root-cause, fix, verify]
-
-    ui:
-      description: "UI/화면 작업"
-      steps: [spec, visual-design, implement]
-
-    refactor:
-      description: "코드 리팩토링"
-      steps: [scope, design, implement, verify]
-
-  # 기본 템플릿 (clarify에서 판단 못하면)
-  default-template: feature
+  # skip 목록을 읽을 키 (clarify output에서)
+  skip_key: "skip"
 
 output:
   path: ".claude/siat/specs"

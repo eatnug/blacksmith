@@ -14,12 +14,11 @@ You are a lightweight orchestrator for siat workflows.
 1. `--auto` flag → force auto mode (override config)
 2. First word matches a step → execute that step
 3. Second word matches existing task slug → continue that task
-4. No step specified → use navigator to find next step
+4. No step specified → start from first step (clarify)
 5. Remaining text → the request (for new tasks)
 
 Examples:
-- `/siat:do` → navigate to find incomplete tasks
-- `/siat:do plan 헤더 만들어줘` → new task, execute plan step
+- `/siat:do 헤더 만들어줘` → new task, start from clarify
 - `/siat:do implement create-header` → continue existing task
 - `/siat:do --auto implement create-login` → continue in auto mode
 
@@ -32,22 +31,30 @@ Read `.claude/siat/config.yml`.
 **If file not found:** Tell user to run `/siat:init` and stop.
 
 Extract:
-- `steps`: workflow step order
+- `workflow.steps`: step order
+- `workflow.skip_key`: key to read skip list from (default: "skip")
 - `output.path`: where specs are saved
 - `execution.mode`: "manual" or "auto"
 - `hooks.pre-step`: hooks to run before step
 - `hooks.post-step`: hooks to run after step
 
-### 2. Read Constitution
+### 2. Initialize Context State
 
-If `.claude/siat/constitution.md` exists, read it. These are global principles that apply to ALL steps:
+Maintain these in your context during workflow execution:
 
-- **불명확 처리 원칙**: 추측하지 말고 `[NEEDS CLARIFICATION: 질문]` 마커 사용
-- **프로젝트 원칙**: 팀별 규칙
+```
+state = {
+    skip: [],           # steps to skip
+    completed: [],      # completed steps
+    current_step: null  # current step
+}
+```
 
-스텝 실행 시 이 원칙들을 준수해야 합니다.
+### 3. Read Constitution
 
-### 3. Determine Mode
+If `.claude/siat/constitution.md` exists, read it. These are global principles that apply to ALL steps.
+
+### 4. Determine Mode
 
 ```
 if --auto flag:
@@ -56,39 +63,56 @@ else:
     mode = config.execution.mode (default: "manual")
 ```
 
-### 4. Resolve Step
+### 5. Execute Steps
 
-If no step specified in arguments:
-- Run `Task(siat-navigator)` to find next step
-- Present options to user with AskUserQuestion
-- Wait for selection
+Iterate through `workflow.steps` in order:
 
-If step specified:
-- Validate step exists in `.claude/siat/steps/{step}/`
+```
+for step in workflow.steps:
+    # Skip check
+    if step in state.skip:
+        print "⏭️ Skipping {step}"
+        continue
 
-### 5. Merge Hooks
+    # Check requires (from step frontmatter)
+    step_config = read steps/{step}/instruction.md frontmatter
+    if step_config.requires:
+        for required in step_config.requires:
+            if required not in state.completed:
+                # Run required step first
+                execute(required)
 
-Read step-specific hooks from `.claude/siat/steps/{step}/instruction.md` frontmatter:
+    # Execute step
+    execute(step)
+
+    # Update state
+    state.completed.append(step)
+
+    # Read step output and update skip list
+    step_output = read step's spec.md output
+    if step_output has skip_key:
+        state.skip.extend(step_output[skip_key])
+```
+
+### 6. Execute Single Step
+
+#### 6.1 Merge Hooks
+
+Read step-specific hooks from frontmatter:
 
 ```yaml
 ---
 name: implement
+requires: [spec, design]  # prerequisite steps
 hooks:
   post-step:
     - agent:siat-gh-pr-creator
 ---
 ```
 
-Combine config hooks with step-specific hooks (extend, not override):
+Combine: `final_hooks = config.hooks + step.hooks`
 
-```
-final_hooks.pre-step = config.hooks.pre-step + step.hooks.pre-step
-final_hooks.post-step = config.hooks.post-step + step.hooks.post-step
-```
-
-Global hooks run first, then step-specific hooks.
-
-### 6. Pre-Step Hooks
+#### 6.2 Pre-Step Hooks
 
 If `final_hooks.pre-step` is not empty:
 
@@ -100,7 +124,7 @@ Task(siat-hook-runner, {
 })
 ```
 
-### 7. Execute Step
+#### 6.3 Execute
 
 **If mode == "auto":**
 
@@ -118,9 +142,9 @@ Task(siat-step-executor, {
 Execute step directly in main context:
 1. Read `.claude/siat/steps/{step}/instruction.md`
 2. Follow instructions
-3. Save output using spec.md template
+3. Save output to spec.md
 
-### 8. Post-Step Hooks
+#### 6.4 Post-Step Hooks
 
 If `final_hooks.post-step` is not empty:
 
@@ -132,16 +156,39 @@ Task(siat-hook-runner, {
 })
 ```
 
-### 9. Report
+### 7. Report
 
-Tell user:
+After each step (manual mode) or workflow completion (auto mode):
 - What was completed
-- Next step in workflow (if any)
+- What was skipped
+- Next step (if any)
 - How to continue
+
+## Skip List Behavior
+
+The skip list is **cumulative**:
+- Starts empty
+- After clarify runs, its output may contain skip list
+- Any step can add to skip list via output
+- Once a step is in skip list, it stays skipped
+
+Example flow:
+```
+1. clarify runs → outputs skip: [reproduce, root-cause, fix]
+2. state.skip = [reproduce, root-cause, fix]
+3. reproduce → SKIPPED
+4. root-cause → SKIPPED
+5. spec runs → no skip output
+6. design runs → no skip output
+7. implement runs
+8. fix → SKIPPED
+9. verify runs
+```
 
 ## Important
 
 - Keep orchestration lightweight
 - Delegate to agents via Task tool
+- Maintain skip list in context (not file)
+- Check `requires` before running each step
 - Hooks always run via siat-hook-runner (isolated)
-- Step execution depends on mode

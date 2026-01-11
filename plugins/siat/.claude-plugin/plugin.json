@@ -1,7 +1,7 @@
 {
   "name": "siat",
   "description": "Template-based workflow with learning. Supports feature, bugfix, UI, refactor templates with checksum-based sync and knowledge accumulation.",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "author": {
     "name": "eatnug"
   },

@@ -188,24 +188,22 @@ children: {다음 문서 경로들}
 
 ---
 
-## Skip과 Fork
+## 워크플로우 패턴
 
-### Skip (스텝 건너뛰기)
+### 태스크별 steps
 
-별도 skip 로직 없음. `steps` 배열이 태스크가 거칠 스텝만 포함.
+각 태스크는 자신만의 `steps`를 가집니다. 시스템 스텝의 서브셋이며, clarify 단계에서 태스크 유형에 맞게 결정됩니다.
 
 ```yaml
-# 모든 스텝 (feature)
+# feature 워크플로우
 steps: [clarify, spec, design, implement, verify]
 
-# design 스킵 (UI 작업)
+# UI 워크플로우
 steps: [clarify, spec, visual-design, implement, verify]
 
 # bugfix 워크플로우
 steps: [clarify, reproduce, root-cause, fix, verify]
 ```
-
-clarify 단계에서 태스크 유형을 분석하고 적절한 `steps`를 결정합니다.
 
 ### Fork (태스크 분리)
 

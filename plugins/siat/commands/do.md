@@ -7,6 +7,35 @@ argument-hint: "[task-id] [request]"
 
 문서 기반 워크플로우 실행기. 각 스텝의 spec 문서가 다음 스텝을 결정합니다.
 
+---
+
+## ⛔ CRITICAL: Spec 문서 생성은 필수
+
+**모든 스텝은 반드시 spec 문서를 생성해야 합니다. 예외 없음.**
+
+### 왜 필수인가?
+
+1. **워크플로우 추적**: spec 문서가 없으면 다음 스텝이 무엇인지 알 수 없음
+2. **컨텍스트 전달**: auto mode에서 서브에이전트는 오직 spec 문서를 통해서만 정보를 받음
+3. **히스토리 보존**: 나중에 왜 이렇게 결정했는지 추적 가능
+
+### 금지 사항
+
+- ❌ "버그가 간단해서" 바로 코드 수정
+- ❌ "이미 원인을 알아서" 문서 스킵
+- ❌ "시간 절약을 위해" 분석만 하고 넘어가기
+
+### 필수 사항
+
+- ✅ 모든 스텝은 `{output.path}/{step}/{task_id}.md` 파일 생성
+- ✅ frontmatter에 `id`, `steps`, `parent`, `children` 포함
+- ✅ 본문에 스텝 결과물 포함
+- ✅ 파일 생성 후 `ls` 명령으로 존재 확인
+
+**spec 문서가 생성되지 않으면 스텝은 완료된 것이 아닙니다.**
+
+---
+
 ## Arguments
 
 `$ARGUMENTS` 파싱:
@@ -111,6 +140,24 @@ children: {next_docs}     # 다음 문서 경로들
 #### 3.5 Post-Step Hooks
 
 `config.hooks.post-step`이 있으면 실행.
+
+#### 3.6 Verify Spec Document (필수)
+
+**스텝 완료 전, 반드시 파일 존재 여부를 확인하세요:**
+
+```bash
+ls {output.path}/{step}/{task_id}.md
+```
+
+**파일이 존재하지 않으면:**
+1. 스텝을 완료 처리하지 않음
+2. 3.4로 돌아가서 spec 문서를 먼저 생성
+3. 문서 생성 후 다시 검증
+
+**파일이 존재하면:**
+- frontmatter 확인 (id, steps, parent, children)
+- 본문에 스텝 결과물이 포함되어 있는지 확인
+- 모두 확인되면 스텝 완료
 
 ### 4. Handle Fork
 

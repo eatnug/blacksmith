@@ -1,176 +1,127 @@
 ---
 description: Apply best-practice templates to your siat setup
-argument-hint: "[--all]"
+argument-hint: "[--force]"
 ---
 
 # Siat Blueprint
 
-베스트프랙티스 템플릿을 프로젝트에 적용합니다.
+Best practice 템플릿을 프로젝트에 **강제 적용**합니다.
 
 ## Arguments
 
 `$ARGUMENTS` parsing:
-- `--all`: 모든 업데이트 자동 적용 (확인 없이)
+- `--force`: 기존 커스터마이징 무시하고 완전히 덮어쓰기
 
 ---
 
 ## Pre-check
 
-```
-blueprint 확인 중...
-```
-
-If `.claude/siat/config.yml` doesn't exist:
+`.claude/siat/config.yml` 파일이 없으면:
 ```
 ❌ siat이 설정되지 않았습니다.
-
 /siat init을 먼저 실행해주세요.
 ```
-→ Stop here.
+→ 여기서 중단.
 
 ---
 
-## Blueprint Flow
+## Step 1: 템플릿 경로 찾기
 
-### 1. 해시 계산
+Glob으로 `**/siat/templates/config.yml` 검색.
 
-각 스텝의 instruction.md 해시를 계산:
+찾은 경로에서 템플릿 루트 추출:
+- `/path/to/plugins/siat/templates/config.yml`
+- → 템플릿 루트: `/path/to/plugins/siat/templates/`
 
-```python
-for step in template_steps:
-    template_hash = hash(templates/steps/{step}/instruction.md)
+**못 찾으면:**
+```
+❌ 템플릿을 찾을 수 없습니다.
+siat 플러그인이 설치되어 있는지 확인해주세요.
+```
+→ 여기서 중단.
 
-for step in installed_steps:
-    current_hash = hash(.claude/siat/steps/{step}/instruction.md)
-    original_hash = manifest.yml.steps[step].original_hash
+---
+
+## Step 2: 템플릿 스텝 전체 복사
+
+**무조건 템플릿 기준으로 동기화합니다.**
+
+### 2-1. 기존 steps 백업
+
+```bash
+if [ -d ".claude/siat/steps" ]; then
+  mv ".claude/siat/steps" ".claude/siat/steps.backup.$(date +%Y%m%d%H%M%S)"
+fi
 ```
 
-### 2. 비교
+### 2-2. 템플릿 steps 복사
 
-| 현재 vs 원본 | 원본 vs 템플릿 | 상황 | 액션 |
-|-------------|---------------|------|------|
-| 같음 | 같음 | 변경 없음 | ✅ 스킵 |
-| 같음 | 다름 | 템플릿 업데이트됨 | 📥 업데이트 가능 |
-| 다름 | 같음 | 사용자가 수정함 | 🔒 유지 |
-| 다름 | 다름 | 충돌 | ⚠️ 선택 필요 |
-
-새 스텝:
-- 템플릿에 있고 manifest에 없음 → ➕ 새 스텝
-
-Deprecated:
-- manifest에 있고 템플릿에 없음 → 📦 deprecated
-
-### 3. 결과 출력
-
-```
-🎨 Siat Blueprint
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-➕ 새 스텝 (N개)
-   - {step}: {description}
-
-📥 업데이트 가능 (N개)
-   - {step}: 템플릿 변경됨
-
-🔒 커스텀 유지 (N개)
-   - {step}: 사용자 수정 감지
-
-⚠️ 충돌 (N개)
-   - {step}: 템플릿도 변경, 사용자도 수정
-
-✅ 동일 (N개)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+cp -r "{템플릿루트}/steps" ".claude/siat/steps"
 ```
 
-### 4. 사용자 선택
+---
 
-Use AskUserQuestion for each category:
+## Step 3: config.yml 동기화
 
-**새 스텝:**
+### 3-1. 현재 config 읽기
+
+Read로 `.claude/siat/config.yml` 읽어서 현재 설정 파악:
+- `output.path` (보존)
+- `hooks` (보존)
+
+### 3-2. workflow.steps 강제 업데이트
+
+템플릿의 config.yml에서 `workflow.steps` 배열을 가져와서 **현재 config에 덮어쓰기**.
+
 ```yaml
-question: "새 스텝을 추가할까요?"
-options:
-  - label: "전체 추가"
-    description: "모든 새 스텝 추가"
-  - label: "선택"
-    description: "추가할 스텝 선택"
-  - label: "스킵"
-    description: "나중에"
+workflow:
+  steps:
+    - clarify
+    - reproduce
+    - root-cause
+    - spec
+    - design
+    - visual-design
+    - implement
+    - fix
+    - verify
 ```
 
-**업데이트 가능:**
-```yaml
-question: "스텝을 업데이트할까요?"
-options:
-  - label: "업데이트"
-    description: "템플릿으로 업데이트 (백업 생성)"
-  - label: "스킵"
-    description: "현재 상태 유지"
-```
+Edit 도구로 config.yml 수정. `output`, `hooks` 등 다른 설정은 보존.
 
-**충돌:**
-```yaml
-question: "{step} 스텝이 충돌합니다. 어떻게 할까요?"
-options:
-  - label: "템플릿으로"
-    description: "템플릿으로 덮어쓰기 (백업 생성)"
-  - label: "현재 유지"
-    description: "사용자 수정 유지"
-  - label: "diff 보기"
-    description: "차이점 확인"
-```
+---
 
-### 5. 실행
-
-**새 스텝 추가:**
-1. `templates/steps/{step}/` → `.claude/siat/steps/{step}/` 복사
-2. manifest.yml에 해시 추가
-
-**업데이트:**
-1. 기존 파일 백업 (`instruction.md.backup`)
-2. 템플릿으로 교체
-3. manifest.yml 해시 업데이트
-
-**Deprecated:**
-1. 폴더 이름 변경 (`{step}` → `{step}.deprecated`)
-2. manifest.yml에 deprecated 마킹
-
-### 6. 완료
+## Step 4: 완료 메시지
 
 ```
 ✅ Blueprint 적용 완료!
 
-➕ 추가됨: {steps}
-📥 업데이트됨: {steps}
-🔒 유지됨: {steps}
-📦 deprecated: {steps}
+📦 백업됨: steps.backup.{timestamp}
+📥 적용됨: 9개 스텝 (clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify)
+⚙️ config.yml 업데이트됨
 
-manifest.yml 업데이트됨
+Best practice가 적용되었습니다.
 ```
 
 ---
 
-## --all Flag
+## --force 플래그
 
-모든 업데이트를 확인 없이 적용:
-- 새 스텝: 전체 추가
-- 업데이트 가능: 전체 업데이트
-- 충돌: 템플릿으로 덮어쓰기
+`--force` 사용 시:
+- 백업 생성 안 함
+- 기존 steps 폴더 그냥 삭제 후 복사
 
-```
-/siat blueprint --all
-
-🎨 Blueprint 전체 적용 중...
-
-✅ 완료!
+```bash
+rm -rf ".claude/siat/steps"
+cp -r "{템플릿루트}/steps" ".claude/siat/steps"
 ```
 
 ---
 
-## Important Notes
+## 핵심 원칙
 
-- 백업 없이 덮어쓰지 않음
-- manifest.yml 필수
-- 커스텀 스텝 (템플릿에 없는)은 건드리지 않음
+1. **템플릿이 진리** - 커스터마이징보다 best practice 우선
+2. **항상 백업** - `--force` 아니면 기존 설정 백업
+3. **전체 동기화** - 부분 업데이트 없음, 항상 전체 적용
+4. **설정 보존** - `output.path`, `hooks`는 유지

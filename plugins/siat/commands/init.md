@@ -5,7 +5,7 @@ argument-hint: "[--force]"
 
 # Siat Init
 
-프로젝트에 Siat 워크플로우를 설정합니다.
+프로젝트에 Siat 워크플로우 기본 구조를 생성합니다.
 
 ## Arguments
 
@@ -94,16 +94,7 @@ options:
 workflow:
   name: "siat"
   description: "SDD 프레임워크 - 문서 기반 워크플로우"
-  steps:
-    - clarify
-    - reproduce
-    - root-cause
-    - spec
-    - design
-    - visual-design
-    - implement
-    - fix
-    - verify
+  steps: []  # blueprint로 채워짐
 
 output:
   path: "{선택된 경로}"
@@ -118,49 +109,24 @@ hooks:
   post-workflow: []
 ```
 
-2. **steps/** - 템플릿에서 복사
-   - `clarify/instruction.md`
-   - `spec/instruction.md`
-   - `design/instruction.md`
-   - ... (모든 스텝)
+2. **steps/** - 빈 디렉토리 (mkdir)
 
-3. **specs/** - 빈 디렉토리
-
-4. **manifest.yml** - 스텝 해시 기록
-```yaml
-installed_at: "{현재 시간}"
-source: "siat-plugin"
-version: "5.1.0"
-
-steps:
-  clarify:
-    original_hash: "{hash}"
-  spec:
-    original_hash: "{hash}"
-  # ...
-```
+3. **specs/** - 빈 디렉토리 (mkdir)
 
 ---
 
 ### 5. 완료
 
 ```
-✅ Siat v5.1.0 초기화 완료!
+✅ Siat 초기화 완료!
 
 생성된 파일:
 .claude/siat/
 ├── config.yml
-├── manifest.yml
 ├── specs/
-└── steps/
-    ├── clarify/
-    ├── spec/
-    ├── design/
-    ├── implement/
-    └── ...
+└── steps/    (비어있음)
 
-다음 단계:
-▶️ /siat do "첫 태스크" 로 시작!
+▶️ 다음 단계: /siat blueprint 로 스텝 템플릿을 적용하세요!
 ```
 
 ---
@@ -168,5 +134,5 @@ steps:
 ## Important Notes
 
 - `specs/`는 --force로도 보존됨
-- `manifest.yml`은 blueprint에서 사용
-- 스텝 커스터마이징은 직접 `steps/*/instruction.md` 수정
+- init은 **빈 구조만 생성** - 스텝 템플릿은 blueprint로
+- 바로 시작하려면: `/siat init` → `/siat blueprint`

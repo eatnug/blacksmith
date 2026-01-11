@@ -92,21 +92,25 @@ mkdir -p ".claude/siat/steps/{step_name}"
 
 ---
 
-## Step 4: config.yml 동기화
+## Step 4: config.yml 완전히 재작성
 
-### 4-1. 현재 config 읽기
+### 4-1. 현재 config에서 보존할 값만 추출
 
-Read로 `.claude/siat/config.yml` 읽어서 현재 설정 파악:
-- `output.path` (보존)
-- `hooks` (보존)
-- `workflow.name` (보존)
-- `workflow.description` (보존)
+Read로 `.claude/siat/config.yml` 읽어서 **다음 값들만** 추출:
+- `workflow.name` (없으면 "siat")
+- `workflow.description` (없으면 "SDD 프레임워크 - 문서 기반 워크플로우")
+- `output.path` (없으면 ".claude/siat/specs")
+- `hooks` (없으면 템플릿 기본값)
 
-### 4-2. steps 배열만 업데이트
+### 4-2. config.yml 완전히 덮어쓰기
 
-템플릿의 config.yml에서 `steps` 배열을 가져와서 **현재 config의 steps에 덮어쓰기**.
+Write 도구로 `.claude/siat/config.yml`을 **완전히 새로 작성**:
 
 ```yaml
+workflow:
+  name: "{추출한 name}"
+  description: "{추출한 description}"
+
 steps:
   - clarify
   - reproduce
@@ -117,9 +121,20 @@ steps:
   - implement
   - fix
   - verify
+
+output:
+  path: "{추출한 path}"
+
+execution:
+  mode: "manual"
+
+hooks:
+  pre-step: {추출한 값 또는 []}
+  post-step: {추출한 값 또는 [agent:siat-learner]}
+  post-workflow: {추출한 값 또는 []}
 ```
 
-Edit 도구로 config.yml 수정. `workflow`, `output`, `hooks`, `execution` 등 다른 설정은 보존.
+**CRITICAL: 기존 config의 다른 키들(templates, entry, default-template, learning, sub-agent 등)은 모두 제거됨. 위 구조만 남긴다.**
 
 ---
 

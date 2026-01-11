@@ -38,7 +38,7 @@
       "name": "siat",
       "source": "./plugins/siat",
       "description": "SDD framework with document-driven workflow. Each spec document defines the next step via parent/children chain.",
-      "version": "5.5.0"
+      "version": "5.5.1"
     }
   ]
 }

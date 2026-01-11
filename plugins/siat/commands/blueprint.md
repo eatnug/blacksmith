@@ -61,7 +61,7 @@ rm -rf ".claude/siat/steps"
 
 ---
 
-## Step 3: 스텝 디렉토리 생성 및 instruction.md 다운로드
+## Step 3: 스텝 디렉토리 생성 및 템플릿 다운로드
 
 스텝 목록 (config.yml에서 파싱):
 - clarify
@@ -85,10 +85,17 @@ mkdir -p ".claude/siat/steps/{step_name}"
    - URL: `{base}/steps/{step_name}/instruction.md`
    - prompt: "Return the entire markdown content exactly as-is, no modifications"
 
-3. Write 도구로 저장:
+3. WebFetch로 spec.md 다운로드:
+   - URL: `{base}/steps/{step_name}/spec.md`
+   - prompt: "Return the entire markdown content exactly as-is, no modifications"
+
+4. Write 도구로 저장:
    - path: `.claude/siat/steps/{step_name}/instruction.md`
+   - path: `.claude/siat/steps/{step_name}/spec.md`
 
 **병렬 처리 권장**: 여러 WebFetch를 동시에 실행하여 속도 향상.
+
+**CRITICAL**: 각 스텝은 반드시 `instruction.md`와 `spec.md` 두 파일을 모두 가져야 합니다.
 
 ---
 

@@ -1,81 +1,55 @@
-# Implementation: {{title}}
+---
+id: "{task-id}"
+steps: [implement, verify]
+parent: "design/{task-id}"
+children: ["verify/{task-id}"]
+---
 
-## 구현 전 체크리스트
+# Implement: {태스크 제목}
 
-- [ ] 설계 문서 검토 완료
-- [ ] 파일 변경 계획 확인
-- [ ] 의존성 순서 파악
+## 진행 상황
 
-## 구현 결과
+current_subtask: "scaffold | implement-core | integrate | test | verify"
+progress:
+  scaffold: "pending | in_progress | completed"
+  implement-core: "pending | in_progress | completed"
+  integrate: "pending | in_progress | completed"
+  test: "pending | in_progress | completed"
+  verify: "pending | in_progress | completed"
 
-### 변경된 파일
+## 파일 변경
 
-| 파일 | 설계상 변경 | 실제 변경 | 일치 |
-|-----|-----------|----------|-----|
-| | | | Y/N |
+files_created:
+  - "{파일 경로}"
 
-### 새로 생성된 파일
+files_modified:
+  - path: "{파일 경로}"
+    status: "pending | in_progress | completed"
+    lines: 0
 
-| 파일 | 설계상 목적 | 실제 구현 | 일치 |
-|-----|-----------|----------|-----|
-| | | | Y/N |
+## 검증
 
-### 삭제된 파일
+validation:
+  syntax: "pending | passed | failed"
+  types: "pending | passed | failed"
+  lint: "pending | passed | failed"
 
-| 파일 | 삭제됨 |
-|-----|-------|
-| | Y/N |
+## 테스트
 
-## 수용 기준 충족 확인
+tests:
+  written: 0
+  passed: 0
+  failed: 0
 
-| ID | 수용 기준 | 충족 | 검증 방법 |
-|----|---------|-----|----------|
-| FR-1 | | Y/N | |
-| FR-2 | | Y/N | |
+## 요구사항 검증
 
-## 테스트 결과
+requirements_verified:
+  - id: "REQ-001"
+    status: "pending | passed | failed"
+  - id: "REQ-002"
+    status: "pending | passed | failed"
 
-### 신규 테스트
+## 메모
 
-| 테스트 | 결과 |
-|-------|-----|
-| | Pass/Fail |
-
-### 기존 테스트
-
-```
-(테스트 실행 결과)
-```
-
-- [ ] 모든 기존 테스트 통과
-
-### 빌드
-
-```
-(빌드 결과)
-```
-
-- [ ] 빌드 성공
-- [ ] 린트 에러 없음
-
-## 설계 대비 차이점
-
-(설계와 다르게 구현된 부분이 있다면 기록)
-
-| 항목 | 설계 | 실제 | 이유 |
-|-----|-----|-----|-----|
-| | | | |
-
-## 미완료 항목
-
-(완료하지 못한 항목이 있다면)
-
-| 항목 | 이유 | 다음 단계 |
-|-----|-----|----------|
-| | | |
-
-## 구현 노트
-
-(구현 중 발견한 특이사항, 향후 개선 필요 사항 등)
-
--
+notes:
+  - "{구현 중 발견한 사항}"

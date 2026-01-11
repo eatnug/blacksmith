@@ -1,119 +1,72 @@
-# Design: {{title}}
-
-## 요구사항 요약
-
-(spec 문서에서 핵심 요구사항 인용)
-
-## 기존 코드 분석
-
-### 관련 파일 구조
-```
-(관련 디렉토리/파일 트리)
-```
-
-### 기존 패턴
-- (기존 코드베이스에서 발견한 패턴들)
-
-### 기존 컨벤션
-- 네이밍:
-- 파일 구조:
-- 테스트:
-
-## 아키텍처 설계
-
-### 개요
-(전체 설계를 한눈에 이해할 수 있는 설명)
-
-### 컴포넌트 다이어그램
-```
-(ASCII 또는 텍스트 기반 다이어그램)
-```
-
-### 데이터 흐름
-```
-(입력 → 처리 → 출력 흐름)
-```
-
-## 상세 설계
-
-### 요구사항별 구현 방법
-
-#### FR-1: (제목)
-
-**접근 방법:**
-
-**구현 위치:**
-
-**인터페이스:**
-```typescript
-// 함수/타입 시그니처
-```
-
+---
+id: "{task-id}"
+steps: [design, implement, verify]
+parent: "prd/{task-id}"
+children: ["implement/{task-id}"]
 ---
 
-## 파일 변경 계획
+# Design: {태스크 제목}
 
-### 수정할 파일
+task: "{태스크 요약}"
+version: 1
+status: "draft | review | approved"
 
-| 파일 | 변경 내용 | 변경 규모 |
-|-----|---------|----------|
-| | | S/M/L |
+context:
+  related_files:
+    - path: "{파일 경로}"
+      relevance: "{관련성 설명}"
+  patterns_used:
+    - name: "{패턴명}"
+      description: "{설명}"
+  constraints:
+    - "{제약사항}"
 
-### 새로 생성할 파일
+architecture:
+  overview: "{아키텍처 개요}"
+  components:
+    - name: "{컴포넌트명}"
+      type: "component | hook | util | api"
+      responsibility: "{역할}"
+      location: "{파일 경로}"
+      dependencies: ["{의존성}"]
 
-| 파일 | 목적 |
-|-----|-----|
-| | |
+interfaces:
+  functions:
+    - name: "{함수명}"
+      signature: "{시그니처}"
+      description: "{설명}"
+      params:
+        - name: "{파라미터명}"
+          type: "{타입}"
+          description: "{설명}"
+      returns:
+        type: "{반환 타입}"
+        description: "{설명}"
+      errors:
+        - type: "{에러 타입}"
+          condition: "{발생 조건}"
 
-### 삭제할 파일
+  components:
+    - name: "{컴포넌트명}"
+      props:
+        - name: "{prop명}"
+          type: "{타입}"
+          required: true | false
+          description: "{설명}"
 
-| 파일 | 이유 |
-|-----|-----|
-| | |
+data:
+  state:
+    - name: "{상태명}"
+      scope: "local | global"
+      type: "{타입}"
+      initial: "{초기값}"
 
-## 기술적 결정
+  flow: |
+    {데이터 흐름 다이어그램 또는 설명}
 
-### 결정 1: (제목)
+implementation_notes:
+  - "{구현 시 주의사항}"
 
-**선택지:**
-1. Option A: ...
-2. Option B: ...
-
-**선택:** Option A
-
-**근거:**
--
-
-**트레이드오프:**
--
-
----
-
-## 의존성
-
-### 영향받는 모듈
--
-
-### 외부 라이브러리
-- (새로 추가 필요한 라이브러리)
-
-### Breaking Changes
-- [ ] 있음 / 없음
-- (있다면 상세 내용)
-
-## 리스크 및 주의사항
-
-| 리스크 | 영향 | 대응 방안 |
-|-------|-----|----------|
-| | | |
-
-## 테스트 전략
-
-### 단위 테스트
--
-
-### 통합 테스트
--
-
-### 수동 테스트
--
+requirements_mapping:
+  - requirement_id: "REQ-001"
+    covered_by: ["{컴포넌트/함수명}"]

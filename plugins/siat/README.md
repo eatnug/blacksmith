@@ -1,115 +1,376 @@
 # Siat
 
-Spec-driven development workflow. 각 팀이 자신만의 워크플로우를 정의하고, 문서 기반으로 스텝 간 컨텍스트를 전달합니다.
+**S**pec-driven **I**terative **A**gent **T**asks - 문서 기반 워크플로우 프레임워크
+
+## 개요
+
+Siat는 SDD(Spec-Driven Development) 프레임워크입니다. 각 스텝이 spec 문서를 생성하고, 그 문서가 다음 스텝을 결정합니다.
+
+```
+[clarify] → spec문서 → [spec] → spec문서 → [design] → spec문서 → [implement] → ...
+```
 
 ## 핵심 개념
 
-### 워크플로우 예시
+### 1. Spec 문서
 
-```
-research → plan → implement → review
-    │         │         │         │
-    ▼         ▼         ▼         ▼
-research.md  plan.md  implement.md  review.md
-```
-
-각 단계(step)가 끝나면 **문서(spec)가 생성**됩니다. 다음 단계는 이 문서를 읽고 시작합니다.
-
-### 왜 이렇게?
-
-- **컨텍스트 분리**: 각 단계의 분석 과정이 다음 단계를 오염시키지 않음
-- **문서 기반 커뮤니케이션**: Claude든 사람이든, 문서를 보고 이어갈 수 있음
-- **세션 분리 가능**: 단계 사이에 세션을 끊고 새로 시작해도 됨
-
-### Constitution (전역 원칙)
-
-`constitution.md`에 프로젝트 전역 원칙을 정의합니다. 모든 스텝에서 이 원칙을 따릅니다.
-
-```markdown
-# constitution.md
-
-## 불명확 처리 원칙
-- 추측하지 않는다
-- `[NEEDS CLARIFICATION: 질문]` 마커를 붙인다
-- 마커가 있으면 다음 단계 진행 불가
-
-## 프로젝트 원칙
-- 테스트 없이 구현 없다
-- breaking change 금지
-```
-
-### 팀별 커스터마이징
-
-단계(step)는 예시일 뿐, 팀에 맞게 정의합니다:
+모든 스텝의 결과물은 **spec 문서**입니다. 각 문서는 frontmatter로 워크플로우를 제어합니다.
 
 ```yaml
-# 팀 A: 기본
-steps: [plan, implement]
+---
+id: "login-page"                    # 태스크 식별자
+steps: [spec, design, implement, verify]  # 남은 스텝들
+parent: "clarify/login-page"        # 이전 문서
+children: ["design/login-page"]     # 다음 문서(들)
+---
 
-# 팀 B: 리뷰 포함
-steps: [plan, implement, review]
-
-# 팀 C: 리서치 중심
-steps: [research, design, prototype, implement, test]
+# 문서 본문
+...
 ```
 
-### 각 단계 정의: instruction.md
+### 2. 문서 체인
 
-각 단계는 `instruction.md`로 정의합니다. frontmatter에 메타데이터를 넣고, 본문에 지침을 작성합니다.
+문서들이 `parent`/`children`으로 연결되어 워크플로우를 형성합니다.
 
-```markdown
+```
+clarify/login-page
+    ↓ children: [spec/login-page]
+spec/login-page
+    ↓ children: [design/login-page]
+design/login-page
+    ↓ children: [implement/login-page]
+implement/login-page
+    ↓ children: [verify/login-page]
+verify/login-page
+    ↓ children: []  ← 완료
+```
+
+### 3. Orchestrator
+
+`/siat:do` 명령이 문서 체인을 따라 스텝을 실행합니다.
+
 ---
-name: plan
-description: 요청사항을 분석하고 구현 계획 수립
+
+## Frontmatter 스펙
+
+### 필드
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | string | 태스크 식별자 (slug) |
+| `steps` | string[] | 남은 스텝들 (현재 스텝 포함) |
+| `parent` | string \| null | 이전 문서 경로 (`step/id` 형식) |
+| `children` | string[] | 다음 문서 경로들 (`step/id` 형식) |
+
+### steps 배열
+
+`steps[0]`은 항상 현재 스텝입니다. 배열은 "left steps" (남은 스텝들)을 의미합니다.
+
+```yaml
+# clarify 단계 문서
+steps: [clarify, spec, design, implement, verify]
+
+# spec 단계 문서 (clarify 완료 후)
+steps: [spec, design, implement, verify]
+
+# design 단계 문서
+steps: [design, implement, verify]
+```
+
+### parent / children
+
+- `parent`: 이 문서를 생성한 이전 스텝의 문서
+- `children`: 이 문서가 생성할 다음 스텝의 문서(들)
+
+```yaml
+# 일반 진행 (1:1)
+children: ["design/login-page"]
+
+# Fork (1:N)
+children: ["spec/login-ui", "spec/login-api"]
+
+# 완료 (종료)
+children: []
+```
+
+---
+
+## Orchestrator 동작
+
+### 실행 흐름
+
+```
+/siat:do [task-id | request]
+         ↓
+    ┌─────────────────┐
+    │ 1. Config 읽기  │
+    └────────┬────────┘
+             ↓
+    ┌─────────────────┐
+    │ 2. 상태 파악    │ ← 기존 문서 있나? children은?
+    └────────┬────────┘
+             ↓
+    ┌─────────────────┐
+    │ 3. 스텝 실행    │ ← instruction.md 따라 실행
+    └────────┬────────┘
+             ↓
+    ┌─────────────────┐
+    │ 4. 문서 생성    │ ← frontmatter + 결과물
+    └────────┬────────┘
+             ↓
+    ┌─────────────────┐
+    │ 5. 보고 & 안내  │
+    └─────────────────┘
+```
+
+### 1. Config 읽기
+
+`.claude/siat/config.yml`에서 설정 로드:
+
+```yaml
+workflow:
+  steps: [clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify]
+
+output:
+  path: ".claude/siat/specs"
+
+execution:
+  mode: "manual"  # 또는 "auto"
+```
+
+### 2. 상태 파악
+
+**새 태스크:**
+- task-id 없음 → clarify부터 시작
+- `parent: null`, `steps: config.workflow.steps`
+
+**기존 태스크:**
+- 해당 id의 최신 문서 찾기
+- `children` 확인:
+  - `[]` → 완료
+  - `[x]` → x가 다음 스텝
+  - `[x, y]` → fork
+
+### 3. 스텝 실행
+
+1. `.claude/siat/steps/{step}/instruction.md` 읽기
+2. instruction에 따라 실행
+3. 사용자와 상호작용 (manual mode)
+
+### 4. 문서 생성
+
+스텝 완료 시 spec 문서 생성:
+
+```yaml
+---
+id: {task-id}
+steps: {현재 steps에서 [0] 제거한 나머지}
+parent: {이전 문서 경로}
+children: {다음 문서 경로들}
+---
+
+{스텝 결과물}
+```
+
+저장: `{output.path}/{step}/{task-id}.md`
+
+### 5. 보고
+
+```
+✅ spec 완료: login-page
+
+📄 생성: .claude/siat/specs/spec/login-page.md
+
+📍 다음: design
+
+▶️ 계속: /siat:do login-page
+```
+
+---
+
+## Skip과 Fork
+
+### Skip (스텝 건너뛰기)
+
+별도 skip 로직 없음. `steps` 배열이 태스크가 거칠 스텝만 포함.
+
+```yaml
+# 모든 스텝 (feature)
+steps: [clarify, spec, design, implement, verify]
+
+# design 스킵 (UI 작업)
+steps: [clarify, spec, visual-design, implement, verify]
+
+# bugfix 워크플로우
+steps: [clarify, reproduce, root-cause, fix, verify]
+```
+
+clarify 단계에서 태스크 유형을 분석하고 적절한 `steps`를 결정합니다.
+
+### Fork (태스크 분리)
+
+`children`이 여러 개면 fork입니다.
+
+```yaml
+# clarify/login-system.md
+---
+id: login-system
+steps: [clarify, spec, design, implement, verify]
+parent: null
+children: ["spec/login-ui", "spec/login-api"]  # fork!
+---
+```
+
+각 child는 독립적인 태스크가 되어 자체 `steps`를 가집니다:
+
+```yaml
+# spec/login-ui.md
+---
+id: login-ui
+steps: [spec, visual-design, implement, verify]
+parent: "clarify/login-system"
+children: ["visual-design/login-ui"]
+---
+```
+
+```yaml
+# spec/login-api.md
+---
+id: login-api
+steps: [spec, design, implement, verify]
+parent: "clarify/login-system"
+children: ["design/login-api"]
+---
+```
+
+---
+
+## 스텝 정의
+
+각 스텝은 `steps/{step}/instruction.md`에 정의됩니다.
+
+### 구조
+
+```
+steps/
+  clarify/
+    instruction.md
+  spec/
+    instruction.md
+  design/
+    instruction.md
+  ...
+```
+
+### instruction.md 형식
+
+```yaml
+---
+name: spec
+description: 요구사항 정의
+role: "Requirements engineer"
 
 inputs:
-  - 무엇을 만들어야 하는지
-  - 제약조건이나 요구사항
+  - clarify 단계의 결과
 
 outputs:
-  - 구현 접근법
-  - 수정할 파일 목록
+  - 요구사항 문서
 
-hooks:
-  pre-step:
-    - skill:clarify    # 시작 전 요구사항 확인
-  post-step:
-    - agent:reporter   # 완료 후 리포트 생성
+sub-tasks:
+  - id: decompose
+    instruction: "요청을 요구사항으로 분해"
+  - id: validate
+    instruction: "요구사항 검증"
 ---
 
-# Plan
+# Spec (요구사항 명세)
 
-요청사항을 분석하고 구현 계획을 세워주세요.
+당신은 **{{role}}**입니다.
+
+[상세 지침...]
+
+## Output Format
+
+[문서 형식 정의...]
 ```
 
-### 훅(Hook) 시스템
+### 기본 제공 스텝
 
-각 단계 실행 전후에 에이전트나 스킬을 자동 실행할 수 있습니다.
+| 스텝 | 용도 |
+|------|------|
+| clarify | 요청 분석, 워크플로우 결정 |
+| reproduce | 버그 재현 (bugfix) |
+| root-cause | 원인 분석 (bugfix) |
+| spec | 요구사항 정의 |
+| design | 기술 설계 |
+| visual-design | UI/UX 시각 설계 |
+| implement | 코드 구현 |
+| fix | 버그 수정 (bugfix) |
+| verify | 검증 |
+
+---
+
+## 사용법
+
+### 새 태스크 시작
 
 ```
-pre-step hooks → 단계 실행 → post-step hooks
+/siat:do 로그인 페이지 만들어줘
 ```
 
-```yaml
-# 예시 - 실제 훅은 팀에 맞게 정의하세요
-hooks:
-  pre-step:
-    - agent:navigator   # 다음 단계 안내
-    - skill:clarify     # 요구사항 명확화
-  post-step:
-    - agent:reporter    # 결과 리포트
+### 태스크 이어서
+
+```
+/siat:do login-page
 ```
 
-- `agent:xxx`: 서브에이전트 호출 (컨텍스트 분리됨)
-- `skill:xxx`: 스킬 호출
+### 특정 스텝부터
 
-훅은 config.yml(전역)과 instruction.md(단계별) 모두에서 정의 가능하며, 합쳐져서 실행됩니다.
+```
+/siat:do implement login-page
+```
 
-> **참고**: `navigator`, `reporter` 등은 siat이 제공하는 예시 에이전트입니다. 팀에서 만든 에이전트나 다른 플러그인의 스킬도 사용할 수 있습니다.
+---
+
+## 커스터마이징
+
+### 새 스텝 추가
+
+1. `steps/{step-name}/instruction.md` 생성
+2. `config.yml`의 `workflow.steps`에 추가
+
+### 기존 스텝 수정
+
+`steps/{step}/instruction.md` 직접 수정
+
+### 워크플로우 변경
+
+`config.yml`에서 `workflow.steps` 순서 변경
+
+---
+
+## 디렉토리 구조
+
+```
+.claude/siat/
+  config.yml          # 설정
+  steps/              # 스텝 정의
+    clarify/
+      instruction.md
+    spec/
+      instruction.md
+    ...
+  specs/              # 생성된 문서들
+    clarify/
+      login-page.md
+    spec/
+      login-page.md
+    ...
+```
+
+---
 
 ## 설치
-
-[Blacksmith 마켓플레이스](../README.md)를 통해 설치:
 
 ```bash
 # 마켓플레이스 등록 (최초 1회)
@@ -122,298 +383,12 @@ hooks:
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트에 siat 초기화 (대화형)
+# 1. 프로젝트에 siat 초기화
 /siat:init
 
 # 2. 워크플로우 시작
-/siat:do spec "로그인 기능 만들어줘"
+/siat:do 로그인 기능 만들어줘
 
 # 3. 다음 스텝 진행
-/siat:do
+/siat:do login-feature
 ```
-
-## 디렉토리 구조
-
-### 시스템 vs 유저 파일
-
-Siat은 **시스템 파일**(플러그인)과 **유저 파일**(프로젝트)을 분리합니다:
-
-| 구분 | 위치 | 업데이트 | 수정 |
-|------|------|----------|------|
-| 시스템 | 플러그인 설치 경로 | 플러그인 업데이트 시 자동 | ❌ |
-| 유저 | `.claude/siat/` | 수동 | ✅ 커스터마이징 |
-
-### 플러그인 구조 (시스템)
-
-```
-plugins/siat/
-├── agents/                    # 유틸리티 에이전트 (수정 X)
-│   ├── hook-runner.md
-│   ├── navigator.md
-│   ├── reporter.md
-│   └── step-executor.md
-├── commands/
-│   ├── do.md                  # 워크플로우 실행
-│   └── init.md                # 프로젝트 초기화
-├── skills/
-│   └── siat/SKILL.md
-└── templates/                 # 초기화 시 복사되는 템플릿
-    ├── config.yml
-    ├── constitution.md
-    └── steps/
-        ├── spec/
-        ├── design/
-        └── implement/
-```
-
-### 프로젝트 구조 (유저, 초기화 후)
-
-```
-.claude/siat/
-├── config.yml                 # 워크플로우 설정 (커스터마이징)
-├── constitution.md            # 전역 원칙 (커스터마이징)
-├── steps/                     # 스텝 정의 (커스터마이징)
-│   ├── spec/
-│   │   ├── instruction.md     # 실행 지침
-│   │   └── spec.md            # 결과 템플릿
-│   ├── design/
-│   └── implement/
-└── specs/                     # 실행 결과물 (자동 생성)
-    ├── create-header/
-    │   ├── spec.md
-    │   ├── design.md
-    │   └── implement.md
-    └── add-login/
-        └── spec.md            # 진행 중
-```
-
-### 초기화 (`/siat:init`)
-
-대화형으로 프로젝트 설정:
-
-```bash
-/siat:init
-```
-
-- 필요한 파일만 생성 (기존 파일 보존)
-- 각 항목 설명 후 선택 가능
-- 플러그인 업데이트 후 새 기능 안내
-
-## 설정
-
-### config.yml
-
-```yaml
-workflow:
-  name: "my-workflow"
-  description: "우리 팀 워크플로우"
-
-steps:
-  - plan
-  - implement
-  # - review
-  # - deploy
-
-output:
-  path: ".claude/siat/specs"
-
-execution:
-  mode: "manual"  # "manual" | "auto"
-
-hooks:
-  pre-step:
-    - agent:navigator
-  post-step:
-    - agent:reporter
-```
-
-### 실행 모드
-
-| 모드 | 설명 |
-|------|------|
-| `manual` | 스텝이 메인 컨텍스트에서 실행. 세션 분리는 사용자가 직접. |
-| `auto` | 스텝이 서브에이전트에서 실행. 자동 컨텍스트 분리. |
-
-```bash
-# config 따름
-/siat:do plan "헤더 만들어"
-
-# auto 모드 강제
-/siat:do --auto plan "헤더 만들어"
-```
-
-## 스텝 정의
-
-### instruction.md
-
-```yaml
----
-name: plan
-description: 요청사항을 분석하고 구현 계획 수립
-
-inputs:
-  - 무엇을 만들어야 하는지
-  - 제약조건이나 요구사항
-
-outputs:
-  - 구현 접근법
-  - 수정할 파일 목록
-
-hooks:
-  pre-step:
-    - skill:clarify
-  post-step:
-    - agent:reporter
----
-
-# Plan
-
-요청사항을 분석하고 구현 계획을 세워주세요.
-```
-
-### spec.md (결과 템플릿)
-
-```markdown
-# Plan: {{title}}
-
-## 요약
-
-## 접근 방법
-
-## 변경할 파일
-
-| 파일 | 변경 내용 |
-|------|----------|
-
-## 주의사항
-```
-
-## 훅 시스템
-
-스텝 실행 전후에 에이전트/스킬을 실행합니다.
-
-```
-pre-step hooks → 스텝 실행 → post-step hooks
-```
-
-### 훅 타입
-
-```yaml
-hooks:
-  pre-step:
-    - agent:navigator     # 에이전트 호출
-    - skill:clarify       # 스킬 호출
-  post-step:
-    - agent:reporter
-```
-
-### 훅 병합
-
-전역(config.yml) + 스텝별(instruction.md) 훅이 합쳐집니다.
-
-```
-최종 = 전역 훅 + 스텝별 훅
-```
-
-전역 훅이 먼저 실행됩니다.
-
-### 외부 에이전트/스킬 사용
-
-siat 내부뿐 아니라 외부 에이전트/스킬도 사용 가능:
-
-```yaml
-hooks:
-  pre-step:
-    - agent:my-custom-agent   # ~/.claude/agents/ 또는 .claude/agents/
-    - skill:my-other-skill    # 다른 플러그인 스킬
-```
-
-## 제공 에이전트
-
-| 에이전트 | 역할 |
-|----------|------|
-| `siat-hook-runner` | 훅 목록을 받아 순차 실행 |
-| `siat-navigator` | specs 스캔하여 다음 스텝 찾기 |
-| `siat-reporter` | 스텝 완료 후 리포트 생성 |
-| `siat-step-executor` | auto 모드에서 스텝 실행 |
-
-## 워크플로우 예시
-
-### 기본 (plan → implement)
-
-```yaml
-steps:
-  - plan
-  - implement
-```
-
-### 코드 리뷰 포함
-
-```yaml
-steps:
-  - plan
-  - implement
-  - review
-```
-
-### 디자인 시스템
-
-```yaml
-steps:
-  - analyze
-  - design
-  - prototype
-  - implement
-  - test
-```
-
-## 사용 흐름
-
-### 1. 새 태스크 시작
-
-```bash
-/siat:do plan "로그인 기능 만들어줘"
-```
-
-→ `.claude/siat/specs/create-login/plan.md` 생성
-
-### 2. 다른 태스크도 시작 가능
-
-```bash
-/siat:do plan "헤더 컴포넌트 만들어줘"
-```
-
-→ `.claude/siat/specs/create-header/plan.md` 생성
-
-여러 태스크를 병렬로 진행할 수 있습니다.
-
-### 3. (선택) 세션 분리
-
-컨텍스트가 무거워지면 새 세션 시작.
-
-### 4. 다음 스텝 진행
-
-```bash
-# 특정 태스크 지정
-/siat:do implement create-login
-
-# 또는 navigator가 미완료 태스크 안내
-/siat:do
-```
-
-→ `plan.md` 읽고 → `implement.md` 생성
-
-### 5. 진행 상황 확인
-
-```bash
-/siat:do
-```
-
-→ 미완료 태스크 목록 표시
-
-## 팁
-
-- **세션 분리**: 각 스텝 완료 후 새 세션에서 다음 스텝 진행하면 컨텍스트 깔끔
-- **auto 모드**: 빠르게 여러 스텝 돌릴 때 유용
-- **훅 활용**: navigator로 자동 안내, reporter로 리포트 생성
-- **커스텀 스텝**: 팀에 맞는 스텝 정의 (design, review, test 등)

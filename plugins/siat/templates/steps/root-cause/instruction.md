@@ -11,18 +11,6 @@ outputs:
   - 근본 원인 분석
   - 영향 범위
   - 수정 방향
-
-sub-tasks:
-  - id: trace
-    instruction: "코드 흐름 추적"
-    execution:
-      strategy: "sub-agent"
-  - id: analyze
-    instruction: "원인 분석"
-  - id: impact
-    instruction: "영향 범위 파악"
-  - id: plan
-    instruction: "수정 방향 수립"
 ---
 
 # Root Cause (근본 원인 분석)
@@ -33,7 +21,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Trace (코드 흐름 추적)
 

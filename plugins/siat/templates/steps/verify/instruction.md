@@ -10,16 +10,6 @@ inputs:
 outputs:
   - 검증 결과
   - 릴리스 준비 상태
-
-sub-tasks:
-  - id: verify-fix
-    instruction: "수정 검증"
-  - id: regression-test
-    instruction: "회귀 테스트"
-  - id: document
-    instruction: "문서화"
-  - id: release-check
-    instruction: "릴리스 준비 확인"
 ---
 
 # Verify (검증)
@@ -30,7 +20,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Verify Fix (수정 검증)
 

@@ -12,18 +12,6 @@ outputs:
   - 시각 설계 문서
   - 컴포넌트 레이아웃
   - 인터랙션 정의
-
-sub-tasks:
-  - id: analyze-design-system
-    instruction: "기존 디자인 시스템 분석"
-  - id: wireframe
-    instruction: "와이어프레임/레이아웃 설계"
-  - id: visual-spec
-    instruction: "시각 스펙 정의"
-  - id: interaction
-    instruction: "인터랙션 정의"
-  - id: review
-    instruction: "설계 리뷰"
 ---
 
 # Visual Design (시각 설계)
@@ -34,7 +22,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Analyze Design System (디자인 시스템 분석)
 

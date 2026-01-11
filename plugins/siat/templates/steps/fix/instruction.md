@@ -10,19 +10,6 @@ inputs:
 outputs:
   - 수정된 코드
   - 회귀 방지 테스트
-
-sub-tasks:
-  - id: prepare
-    instruction: "수정 준비"
-  - id: fix-code
-    instruction: "코드 수정"
-    execution:
-      strategy: "chunked"
-      validate: true
-  - id: add-test
-    instruction: "회귀 테스트 추가"
-  - id: check-side-effects
-    instruction: "부작용 확인"
 ---
 
 # Fix (버그 수정)
@@ -33,7 +20,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Prepare (준비)
 

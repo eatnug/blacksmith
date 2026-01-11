@@ -11,16 +11,6 @@ outputs:
   - 요구사항 문서
   - 수용 기준 (Acceptance Criteria)
   - 범위 정의
-
-sub-tasks:
-  - id: decompose
-    instruction: "요청을 개별 요구사항으로 분해"
-  - id: define-criteria
-    instruction: "각 요구사항의 완료 기준 정의"
-  - id: scope
-    instruction: "범위 명확화"
-  - id: validate
-    instruction: "요구사항 검증"
 ---
 
 # PRD (Product Requirements Document)
@@ -31,7 +21,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Decompose (분해)
 

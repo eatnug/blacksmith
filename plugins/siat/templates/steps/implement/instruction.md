@@ -10,25 +10,6 @@ inputs:
 outputs:
   - 구현된 코드
   - 테스트 코드 (필요시)
-
-sub-tasks:
-  - id: scaffold
-    instruction: "파일 구조 생성"
-    execution:
-      strategy: "chunked"
-      validate: true
-  - id: implement-core
-    instruction: "핵심 로직 구현"
-    execution:
-      strategy: "chunked"
-      chunk-size: "1-file"
-      validate: true
-  - id: integrate
-    instruction: "기존 코드와 통합"
-  - id: test
-    instruction: "테스트 작성 및 실행"
-  - id: verify
-    instruction: "요구사항 충족 검증"
 ---
 
 # Implement (구현)
@@ -54,7 +35,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Scaffold (파일 구조 생성)
 

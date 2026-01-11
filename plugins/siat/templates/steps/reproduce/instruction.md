@@ -11,16 +11,6 @@ outputs:
   - 재현 단계 (steps to reproduce)
   - 증상 기록
   - 환경 정보
-
-sub-tasks:
-  - id: gather-info
-    instruction: "버그 정보 수집"
-  - id: reproduce-steps
-    instruction: "재현 단계 확립"
-  - id: document-symptoms
-    instruction: "증상 문서화"
-  - id: isolate
-    instruction: "범위 좁히기"
 ---
 
 # Reproduce (버그 재현)
@@ -31,7 +21,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Gather Info (정보 수집)
 

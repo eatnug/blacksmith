@@ -11,21 +11,6 @@ outputs:
   - 기술 설계 문서
   - 인터페이스 정의
   - 데이터 모델 (필요시)
-
-sub-tasks:
-  - id: analyze-context
-    instruction: "기존 코드베이스 분석"
-    execution:
-      strategy: "sub-agent"
-      scope: ["architecture", "patterns", "conventions"]
-  - id: design-architecture
-    instruction: "아키텍처 설계"
-  - id: define-interfaces
-    instruction: "인터페이스 정의"
-  - id: plan-data
-    instruction: "데이터 모델 설계"
-  - id: review
-    instruction: "설계 리뷰 및 검증"
 ---
 
 # Design (기술 설계)
@@ -36,7 +21,7 @@ sub-tasks:
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Analyze Context (컨텍스트 분석)
 

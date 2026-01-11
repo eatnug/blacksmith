@@ -11,16 +11,6 @@ outputs:
   - 명확화된 요청
   - 실행할 스텝 목록
   - 다음 단계로 넘길 structured input
-
-sub-tasks:
-  - id: analyze
-    instruction: "요청 분석 및 유형 분류"
-  - id: question
-    instruction: "불명확한 부분 질문"
-  - id: decide-workflow
-    instruction: "실행할 스텝 결정"
-  - id: handoff
-    instruction: "다음 단계로 인계"
 ---
 
 # Clarify (명확화)
@@ -49,7 +39,7 @@ clarify → reproduce → root-cause → prd → design → visual-design → im
 
 ---
 
-## Sub-tasks
+## 프로세스
 
 ### 1. Analyze (분석)
 

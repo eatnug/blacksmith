@@ -1,11 +1,11 @@
 ---
-description: Sync steps with template - checksum-based comparison
+description: Apply best-practice templates to your siat setup
 argument-hint: "[--all]"
 ---
 
-# Siat Sync
+# Siat Blueprint
 
-체크섬 기반으로 템플릿과 설치된 스텝을 동기화합니다.
+베스트프랙티스 템플릿을 프로젝트에 적용합니다.
 
 ## Arguments
 
@@ -17,12 +17,12 @@ argument-hint: "[--all]"
 ## Pre-check
 
 ```
-manifest.yml 확인 중...
+blueprint 확인 중...
 ```
 
-If `.claude/siat/manifest.yml` doesn't exist:
+If `.claude/siat/config.yml` doesn't exist:
 ```
-❌ manifest.yml이 없습니다.
+❌ siat이 설정되지 않았습니다.
 
 /siat init을 먼저 실행해주세요.
 ```
@@ -30,7 +30,7 @@ If `.claude/siat/manifest.yml` doesn't exist:
 
 ---
 
-## Sync Flow
+## Blueprint Flow
 
 ### 1. 해시 계산
 
@@ -63,7 +63,7 @@ Deprecated:
 ### 3. 결과 출력
 
 ```
-🔄 Siat Sync
+🎨 Siat Blueprint
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -140,7 +140,7 @@ options:
 ### 6. 완료
 
 ```
-✅ 동기화 완료!
+✅ Blueprint 적용 완료!
 
 ➕ 추가됨: {steps}
 📥 업데이트됨: {steps}
@@ -160,9 +160,9 @@ manifest.yml 업데이트됨
 - 충돌: 템플릿으로 덮어쓰기
 
 ```
-/siat sync --all
+/siat blueprint --all
 
-🔄 전체 동기화 진행 중...
+🎨 Blueprint 전체 적용 중...
 
 ✅ 완료!
 ```

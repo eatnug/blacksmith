@@ -8,6 +8,11 @@ id: string          # 태스크 식별자 (slug)
 steps: string[]     # 남은 스텝들 (현재 포함)
 parent: string|null # 이전 단계 문서 경로 (step/id 형식)
 children: string[]  # 다음 단계 문서 경로들 (step/id 형식)
+
+# Learning (post-step에서 추가됨)
+learn: string[]     # 코드베이스에서 배운 것들
+feedback: string[]  # 스텝 프로세스에 대한 피드백
+reflected: boolean  # 시스템에 반영됐는지
 ---
 ```
 
@@ -37,6 +42,23 @@ children: string[]  # 다음 단계 문서 경로들 (step/id 형식)
 - 1개 = 일반 진행
 - 2개 이상 = fork
 
+### learn
+- 해당 스텝에서 코드베이스/프로젝트에 대해 배운 것들
+- 객관적 사실 위주 (패턴, 구조, 컨벤션, 도메인 지식)
+- post-step hook(learner agent)이 추가
+- 예: `["zustand로 상태관리", "인증은 src/auth/"]`
+
+### feedback
+- 해당 스텝의 프로세스/instruction에 대한 피드백
+- 유저 의견 (개선점, 좋았던 점)
+- 없으면 빈 배열
+- 예: `["기술 스택 파악이 더 일찍 됐으면"]`
+
+### reflected
+- learn/feedback이 시스템에 반영됐는지
+- `false`: 아직 미반영 (review 대기)
+- `true`: knowledge/instruction에 반영 완료
+
 ## 예시
 
 ### 일반 진행 (fork 없음)
@@ -48,6 +70,13 @@ id: login-page
 steps: [clarify, spec, design, implement, verify]
 parent: null
 children: [spec/login-page]
+
+learn:
+  - "기존 인증은 NextAuth 사용"
+  - "src/app/auth/ 구조"
+feedback:
+  - "요구사항 정리가 명확했음"
+reflected: false
 ---
 ```
 
@@ -58,6 +87,11 @@ id: login-page
 steps: [spec, design, implement, verify]
 parent: clarify/login-page
 children: [design/login-page]
+
+learn:
+  - "세션 기반 인증 사용 중"
+feedback: []
+reflected: false
 ---
 ```
 

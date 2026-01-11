@@ -1,5 +1,5 @@
 ---
-description: Initialize Siat workflow - codebase analysis + setup
+description: Initialize Siat workflow in your project
 argument-hint: "[--force]"
 ---
 
@@ -22,158 +22,151 @@ argument-hint: "[--force]"
 📦 Siat 설정 확인 중...
 ```
 
-Check `.claude/siat/` directory.
+Check `.claude/siat/config.yml`.
 
 **If exists (without --force):**
 ```
 ✅ Siat이 이미 설정되어 있습니다.
 
-현재 스텝: {설치된 스텝 목록}
-
-업데이트가 필요하면: /siat sync
-완전히 초기화하려면: /siat init --force
+베스트프랙티스 적용: /siat blueprint
+완전히 초기화: /siat init --force
 ```
 → Stop here.
 
 **If exists with --force:**
+Use AskUserQuestion to confirm:
+```yaml
+question: "기존 설정을 초기화할까요?"
+options:
+  - label: "초기화"
+    description: "config, steps 초기화 (specs는 보존)"
+  - label: "취소"
+    description: "중단"
 ```
-⚠️ 기존 설정을 초기화합니다.
-
-보존됨:
-- .claude/siat/specs/ (기존 output)
-- .claude/knowledge/ (기존 지식)
-
-초기화됨:
-- config.yml
-- constitution.md
-- manifest.yml
-- steps/
-```
-
-Use AskUserQuestion to confirm.
-
-**If not exists:**
-→ Continue to Fresh Setup.
 
 ---
 
-## Fresh Setup
+### 2. Output 경로 설정
 
-### Step 1: 코드베이스 분석
+Use AskUserQuestion:
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔍 코드베이스 분석 중...
-```
-
-**Use Task tool with subagent to analyze:**
-- 프로젝트 타입 (언어, 프레임워크)
-- 디렉토리 구조
-- 주요 패턴 (상태 관리, API, 테스트)
-- 기존 컨벤션
-
-**Show result:**
-```
-프로젝트 분석 결과:
-- 타입: {language} + {framework}
-- 상태 관리: {state_management}
-- API: {api_style}
-- 테스트: {test_framework}
+```yaml
+question: "Spec 문서를 어디에 저장할까요?"
+header: "Output"
+options:
+  - label: ".claude/siat/specs (Recommended)"
+    description: "기본 경로"
+  - label: "docs/specs"
+    description: "문서 폴더"
+  - label: "직접 입력"
+    description: "커스텀 경로"
 ```
 
-### Step 2: Knowledge 초기화
+---
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### 3. 글로벌 Hooks 설정
 
-📚 프로젝트 지식 초기화
-```
+Use AskUserQuestion (multiSelect: true):
 
-Create `.claude/knowledge/`:
-- `architecture.md` - 분석 결과 기반
-- `conventions.md` - 분석 결과 기반
-- `domains/` - 빈 폴더
-
-```
-✅ .claude/knowledge/ 생성됨
-```
-
-### Step 3: Siat 설정 생성
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚙️ Siat 설정 생성
+```yaml
+question: "어떤 글로벌 훅을 사용할까요?"
+header: "Hooks"
+multiSelect: true
+options:
+  - label: "siat-learner (Recommended)"
+    description: "매 스텝 후 learn/feedback 수집"
+  - label: "없음"
+    description: "훅 없이 시작"
 ```
 
-Create `.claude/siat/`:
-- `config.yml` - 템플릿에서 복사
-- `constitution.md` - 템플릿에서 복사
-- `manifest.yml` - 스텝별 해시 포함
-- `specs/` - output 디렉토리
-- `logs/` - 워크플로우 기록
-- `steps/` - 템플릿에서 복사
+---
 
-**manifest.yml 생성:**
+### 4. 파일 생성
+
+```
+⚙️ Siat 설정 생성 중...
+```
+
+**Create `.claude/siat/`:**
+
+1. **config.yml** - 사용자 선택 반영
+```yaml
+workflow:
+  name: "siat"
+  description: "SDD 프레임워크 - 문서 기반 워크플로우"
+  steps:
+    - clarify
+    - reproduce
+    - root-cause
+    - spec
+    - design
+    - visual-design
+    - implement
+    - fix
+    - verify
+
+output:
+  path: "{선택된 경로}"
+
+execution:
+  mode: "manual"
+
+hooks:
+  pre-step: []
+  post-step:
+    - agent:siat-learner  # 선택된 경우
+  post-workflow: []
+```
+
+2. **steps/** - 템플릿에서 복사
+   - `clarify/instruction.md`
+   - `spec/instruction.md`
+   - `design/instruction.md`
+   - ... (모든 스텝)
+
+3. **specs/** - 빈 디렉토리
+
+4. **manifest.yml** - 스텝 해시 기록
 ```yaml
 installed_at: "{현재 시간}"
 source: "siat-plugin"
-version: "4.0.0"
+version: "5.1.0"
 
 steps:
   clarify:
     original_hash: "{hash}"
   spec:
     original_hash: "{hash}"
-  # ... 모든 스텝
+  # ...
 ```
 
-각 스텝의 `instruction.md` 파일 해시를 계산하여 기록.
+---
+
+### 5. 완료
 
 ```
-✅ .claude/siat/ 생성됨
-```
-
-### Step 4: 완료
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ Siat v4.0.0 초기화 완료!
+✅ Siat v5.1.0 초기화 완료!
 
 생성된 파일:
-.claude/
-├── siat/
-│   ├── config.yml
-│   ├── constitution.md
-│   ├── manifest.yml
-│   ├── specs/
-│   ├── logs/
-│   └── steps/
-│       ├── clarify/
-│       ├── spec/
-│       ├── design/
-│       ├── implement/
-│       ├── evaluate/
-│       ├── reproduce/
-│       ├── root-cause/
-│       ├── fix/
-│       └── verify/
-└── knowledge/
-    ├── architecture.md
-    ├── conventions.md
-    └── domains/
+.claude/siat/
+├── config.yml
+├── manifest.yml
+├── specs/
+└── steps/
+    ├── clarify/
+    ├── spec/
+    ├── design/
+    ├── implement/
+    └── ...
 
 다음 단계:
-1. .claude/knowledge/ 확인 및 보강
-2. /do "첫 태스크" 로 시작!
+▶️ /siat do "첫 태스크" 로 시작!
 ```
 
 ---
 
 ## Important Notes
 
-- specs/와 knowledge/는 --force로도 보존
-- manifest.yml은 sync에서 사용
-- 코드베이스 분석은 서브에이전트로 실행 (메인 컨텍스트 보존)
+- `specs/`는 --force로도 보존됨
+- `manifest.yml`은 blueprint에서 사용
+- 스텝 커스터마이징은 직접 `steps/*/instruction.md` 수정

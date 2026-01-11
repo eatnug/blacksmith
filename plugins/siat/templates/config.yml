@@ -22,5 +22,6 @@ execution:
 
 hooks:
   pre-step: []
-  post-step: []
+  post-step:
+    - agent:siat-learner
   post-workflow: []

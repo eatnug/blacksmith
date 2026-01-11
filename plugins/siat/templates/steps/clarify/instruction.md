@@ -34,13 +34,13 @@ sub-tasks:
 ## 시스템 스텝 목록
 
 ```
-clarify → reproduce → root-cause → spec → design → visual-design → implement → fix → verify
+clarify → reproduce → root-cause → prd → design → visual-design → implement → fix → verify
 ```
 
 각 스텝 용도:
 - `reproduce`: 버그 재현 (bugfix)
 - `root-cause`: 원인 분석 (bugfix)
-- `spec`: 요구사항 정의
+- `prd`: 요구사항 정의
 - `design`: 기술 설계
 - `visual-design`: UI/UX 시각 설계
 - `implement`: 구현
@@ -57,9 +57,9 @@ clarify → reproduce → root-cause → spec → design → visual-design → i
 
 | 유형 | 키워드/패턴 | 권장 스텝 |
 |------|------------|----------|
-| 새 기능 | "추가해줘", "만들어줘" | clarify → spec → design → implement → verify |
+| 새 기능 | "추가해줘", "만들어줘" | clarify → prd → design → implement → verify |
 | 버그 수정 | "안 돼", "오류", "버그" | clarify → reproduce → root-cause → fix → verify |
-| UI 작업 | "화면", "디자인", "UI" | clarify → spec → visual-design → implement → verify |
+| UI 작업 | "화면", "디자인", "UI" | clarify → prd → visual-design → implement → verify |
 | 복합 작업 | 여러 유형 혼합 | fork 고려 |
 
 **사고 과정:**
@@ -82,7 +82,7 @@ clarify → reproduce → root-cause → spec → design → visual-design → i
 
 ```
 📋 요청 유형: [분석 결과]
-📍 실행할 스텝: clarify → spec → design → implement → verify
+📍 실행할 스텝: clarify → prd → design → implement → verify
 
 이 워크플로우로 진행할까요?
 ```
@@ -94,7 +94,7 @@ clarify → reproduce → root-cause → spec → design → visual-design → i
 
 ### 4. Handoff (인계)
 
-확인되면 spec 문서를 생성하고 다음 단계로 넘길 정보를 정리하세요.
+확인되면 prd 문서를 생성하고 다음 단계로 넘길 정보를 정리하세요.
 
 ---
 
@@ -103,9 +103,9 @@ clarify → reproduce → root-cause → spec → design → visual-design → i
 ```yaml
 ---
 id: "{task-slug}"
-steps: [clarify, spec, design, implement, verify]  # 이 태스크의 스텝들
+steps: [clarify, prd, design, implement, verify]  # 이 태스크의 스텝들
 parent: null
-children: [spec/{task-slug}]  # 또는 fork 시 여러 개
+children: [prd/{task-slug}]  # 또는 fork 시 여러 개
 ---
 
 # Clarify: {태스크 제목}
@@ -158,9 +158,9 @@ children: [spec/{task-slug}]  # 또는 fork 시 여러 개
 ```yaml
 ---
 id: cart-quantity
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [spec/cart-quantity]
+children: [prd/cart-quantity]
 ---
 
 # Clarify: 장바구니 수량 변경
@@ -191,7 +191,7 @@ children: [spec/cart-quantity]
 - 장바구니 전체 리디자인
 
 ## 다음 단계
-- **다음 스텝**: spec
+- **다음 스텝**: prd
 - **전달 사항**: 수량 변경 요구사항 정의 필요
 ```
 
@@ -249,9 +249,9 @@ children: [reproduce/login-bug]
 ```yaml
 ---
 id: login-system
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [spec/login-ui, spec/login-api]  # fork
+children: [prd/login-ui, prd/login-api]  # fork
 ---
 
 # Clarify: 로그인 시스템
@@ -277,8 +277,8 @@ children: [spec/login-ui, spec/login-api]  # fork
 
 | ID | 설명 | 스텝 |
 |----|------|------|
-| login-ui | 로그인 UI 컴포넌트 | spec → visual-design → implement → verify |
-| login-api | 인증 API 연동 | spec → design → implement → verify |
+| login-ui | 로그인 UI 컴포넌트 | prd → visual-design → implement → verify |
+| login-api | 인증 API 연동 | prd → design → implement → verify |
 
 ## 다음 단계
 - **login-ui**: spec에서 UI 요구사항 정의
@@ -292,7 +292,7 @@ children: [spec/login-ui, spec/login-api]  # fork
 - [ ] 요청 유형이 명확히 분류됨
 - [ ] 모든 불명확한 부분이 질문되고 답변됨
 - [ ] 실행할 스텝이 결정되고 사용자 확인됨
-- [ ] spec 문서가 올바른 frontmatter와 함께 생성됨
+- [ ] prd 문서가 올바른 frontmatter와 함께 생성됨
 
 ---
 

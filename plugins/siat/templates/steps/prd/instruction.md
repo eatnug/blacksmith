@@ -1,6 +1,6 @@
 ---
-name: spec
-description: 명확화된 요청을 구체적인 요구사항으로 변환
+name: prd
+description: 명확화된 요청을 구체적인 요구사항으로 변환 (Product Requirements Document)
 role: "Requirements engineer"
 
 inputs:
@@ -23,7 +23,7 @@ sub-tasks:
     instruction: "요구사항 검증"
 ---
 
-# Spec (요구사항 명세)
+# PRD (Product Requirements Document)
 
 당신은 **{{role}}**입니다.
 
@@ -91,12 +91,12 @@ Then: [기대 결과]
 ```yaml
 ---
 id: "{task-id}"
-steps: [spec, design, implement, verify]  # 남은 스텝들
+steps: [prd, design, implement, verify]  # 남은 스텝들
 parent: "clarify/{task-id}"
 children: ["design/{task-id}"]  # 다음 스텝
 ---
 
-# Spec: {태스크 제목}
+# PRD: {태스크 제목}
 
 ## 요약
 

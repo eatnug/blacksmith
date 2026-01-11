@@ -1,7 +1,7 @@
 ---
 id: "{task-id}"
 steps: [design, implement, verify]
-parent: "spec/{task-id}"
+parent: "prd/{task-id}"
 children: ["implement/{task-id}"]
 ---
 

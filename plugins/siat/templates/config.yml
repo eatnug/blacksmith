@@ -7,7 +7,7 @@ workflow:
     - clarify        # 분석 및 명확화
     - reproduce      # bugfix: 버그 재현
     - root-cause     # bugfix: 원인 분석
-    - spec           # 요구사항 정의
+    - prd            # 요구사항 정의 (Product Requirements Document)
     - design         # 기술 설계
     - visual-design  # UI/UX 시각 설계
     - implement      # 구현

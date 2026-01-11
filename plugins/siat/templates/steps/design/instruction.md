@@ -4,7 +4,7 @@ description: 요구사항을 기술적 설계로 변환
 role: "Software architect"
 
 inputs:
-  - spec 단계의 요구사항 문서
+  - prd 단계의 요구사항 문서
   - 프로젝트 기존 아키텍처
 
 outputs:
@@ -115,7 +115,7 @@ interface ComponentProps {
 ---
 id: "{task-id}"
 steps: [design, implement, verify]  # 남은 스텝들
-parent: "spec/{task-id}"
+parent: "prd/{task-id}"
 children: ["implement/{task-id}"]  # 다음 스텝
 ---
 
@@ -192,7 +192,7 @@ requirements_mapping:
 
 ### Example: 장바구니 수량 변경
 
-**Input (from spec):**
+**Input (from prd):**
 - REQ-001: 수량 증가/감소 버튼
 - REQ-002: 수량 직접 입력
 - REQ-003: 재고 초과 방지

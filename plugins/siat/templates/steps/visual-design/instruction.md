@@ -2,10 +2,10 @@
 name: visual-design
 description: UI/UX 시각 설계
 role: "UI/UX designer"
-requires: [spec]
+requires: [prd]
 
 inputs:
-  - spec 단계의 요구사항 문서
+  - prd 단계의 요구사항 문서
   - 프로젝트 디자인 시스템 (있다면)
 
 outputs:
@@ -208,7 +208,7 @@ requirements_mapping:
 
 ### Example: 모달 다이얼로그
 
-**Input (from spec):**
+**Input (from prd):**
 - REQ-001: 확인/취소 버튼이 있는 모달
 - REQ-002: 배경 딤 처리
 - REQ-003: ESC로 닫기

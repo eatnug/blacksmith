@@ -1,11 +1,11 @@
 ---
 id: "{task-id}"
-steps: [spec, design, implement, verify]
+steps: [prd, design, implement, verify]
 parent: "clarify/{task-id}"
 children: ["design/{task-id}"]
 ---
 
-# Spec: {태스크 제목}
+# PRD: {태스크 제목}
 
 ## 요약
 

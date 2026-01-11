@@ -67,7 +67,7 @@ rm -rf ".claude/siat/steps"
 - clarify
 - reproduce
 - root-cause
-- spec
+- prd
 - design
 - visual-design
 - implement
@@ -122,7 +122,7 @@ steps:
   - clarify
   - reproduce
   - root-cause
-  - spec
+  - prd
   - design
   - visual-design
   - implement
@@ -151,7 +151,7 @@ hooks:
 ```
 ✅ Blueprint 적용 완료!
 
-📥 적용됨: 9개 스텝 (clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify)
+📥 적용됨: 9개 스텝 (clarify, reproduce, root-cause, prd, design, visual-design, implement, fix, verify)
 ⚙️ config.yml 업데이트됨
 
 Best practice가 적용되었습니다.
@@ -162,7 +162,7 @@ Best practice가 적용되었습니다.
 ✅ Blueprint 적용 완료!
 
 📦 백업됨: steps.backup.{timestamp}
-📥 적용됨: 9개 스텝 (clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify)
+📥 적용됨: 9개 스텝 (clarify, reproduce, root-cause, prd, design, visual-design, implement, fix, verify)
 ⚙️ config.yml 업데이트됨
 
 Best practice가 적용되었습니다.

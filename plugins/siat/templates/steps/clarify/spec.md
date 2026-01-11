@@ -1,8 +1,8 @@
 ---
 id: "{task-slug}"
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [spec/{task-slug}]
+children: [prd/{task-slug}]
 ---
 
 # Clarify: {태스크 제목}

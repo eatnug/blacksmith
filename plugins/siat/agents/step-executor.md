@@ -22,7 +22,6 @@ You receive:
 1. **Read step definition**
    ```
    .claude/siat/steps/{step}/instruction.md
-   .claude/siat/steps/{step}/spec.md
    ```
 
 2. **Read previous step output** (if exists)
@@ -36,7 +35,7 @@ You receive:
    - Perform the work (analysis, implementation, etc.)
 
 4. **Generate output**
-   - Use spec.md as template
+   - Follow instruction.md's Output Format section
    - Fill in all sections
 
 5. **Save result**
@@ -47,7 +46,7 @@ You receive:
 ## Important Guidelines
 
 - Follow instruction.md EXACTLY
-- Use spec.md template format
+- Use instruction.md's Output Format section
 - Read previous step outputs for context
 - If inputs are unclear, make reasonable assumptions and note them
 - Do NOT skip any required sections in the spec

@@ -1,264 +1,179 @@
 ---
-description: Initialize Siat workflow in your project - interactive setup wizard
+description: Initialize Siat workflow - codebase analysis + setup
 argument-hint: "[--force]"
 ---
 
-# Siat Init - Interactive Setup
+# Siat Init
 
-You are an interactive setup wizard for siat workflows.
+프로젝트에 Siat 워크플로우를 설정합니다.
 
 ## Arguments
 
 `$ARGUMENTS` parsing:
-- `--force`: Overwrite existing files (ask confirmation first)
+- `--force`: 기존 설정 덮어쓰기
 
-## Setup Flow
+---
+
+## Flow
 
 ### 1. Check Current State
 
-Check `.claude/siat/` directory:
-
 ```
-config.yml      → exists?
-constitution.md → exists?
-steps/          → exists? which steps?
+📦 Siat 설정 확인 중...
 ```
 
-### 2. Branch by State
+Check `.claude/siat/` directory.
 
-**If nothing exists (fresh setup):**
-→ Go to Fresh Setup Flow
+**If exists (without --force):**
+```
+✅ Siat이 이미 설정되어 있습니다.
 
-**If partially exists:**
-→ Go to Update Flow
+현재 스텝: {설치된 스텝 목록}
 
-**If everything exists:**
-→ Go to Check for Updates Flow
+업데이트가 필요하면: /siat sync
+완전히 초기화하려면: /siat init --force
+```
+→ Stop here.
+
+**If exists with --force:**
+```
+⚠️ 기존 설정을 초기화합니다.
+
+보존됨:
+- .claude/siat/specs/ (기존 output)
+- .claude/knowledge/ (기존 지식)
+
+초기화됨:
+- config.yml
+- constitution.md
+- manifest.yml
+- steps/
+```
+
+Use AskUserQuestion to confirm.
+
+**If not exists:**
+→ Continue to Fresh Setup.
 
 ---
 
-## Fresh Setup Flow
+## Fresh Setup
 
-Output:
-```
-📦 Siat 워크플로우를 설정합니다.
-
-설정할 항목:
-1. config.yml - 워크플로우 설정
-2. constitution.md - 전역 원칙
-3. steps/ - 스텝 정의
-```
-
-### Step 1: config.yml
+### Step 1: 코드베이스 분석
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ config.yml
-
-워크플로우 순서와 실행 모드를 정의합니다.
+🔍 코드베이스 분석 중...
 ```
 
-Read `templates/config.yml` from plugin directory and show summary:
-- steps 순서
-- execution mode
-- hooks 설정
+**Use Task tool with subagent to analyze:**
+- 프로젝트 타입 (언어, 프레임워크)
+- 디렉토리 구조
+- 주요 패턴 (상태 관리, API, 테스트)
+- 기존 컨벤션
 
+**Show result:**
 ```
-→ 기본값으로 생성합니다. (나중에 수정 가능)
-
-✅ .claude/siat/config.yml 생성됨
-```
-
-Create `.claude/siat/config.yml` by copying template.
-
-### Step 2: constitution.md
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-2️⃣ constitution.md
-
-모든 스텝에서 따라야 할 **전역 원칙**입니다.
-
-예시:
-- "추측하지 않고 [NEEDS CLARIFICATION] 마커 사용"
-- "테스트 없이 구현 없다"
-- "breaking change 금지"
+프로젝트 분석 결과:
+- 타입: {language} + {framework}
+- 상태 관리: {state_management}
+- API: {api_style}
+- 테스트: {test_framework}
 ```
 
-Read `templates/constitution.md` and show it.
+### Step 2: Knowledge 초기화
 
-Use AskUserQuestion:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 프로젝트 지식 초기화
+```
+
+Create `.claude/knowledge/`:
+- `architecture.md` - 분석 결과 기반
+- `conventions.md` - 분석 결과 기반
+- `domains/` - 빈 폴더
+
+```
+✅ .claude/knowledge/ 생성됨
+```
+
+### Step 3: Siat 설정 생성
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚙️ Siat 설정 생성
+```
+
+Create `.claude/siat/`:
+- `config.yml` - 템플릿에서 복사
+- `constitution.md` - 템플릿에서 복사
+- `manifest.yml` - 스텝별 해시 포함
+- `specs/` - output 디렉토리
+- `logs/` - 워크플로우 기록
+- `steps/` - 템플릿에서 복사
+
+**manifest.yml 생성:**
 ```yaml
-question: "constitution.md를 어떻게 설정할까요?"
-options:
-  - label: "기본값 사용"
-    description: "불명확 처리 원칙 + 빈 프로젝트 원칙 섹션"
-  - label: "직접 작성"
-    description: "빈 템플릿을 생성하고 직접 작성"
-  - label: "나중에"
-    description: "지금은 스킵 (없어도 동작함)"
+installed_at: "{현재 시간}"
+source: "siat-plugin"
+version: "4.0.0"
+
+steps:
+  clarify:
+    original_hash: "{hash}"
+  spec:
+    original_hash: "{hash}"
+  # ... 모든 스텝
 ```
 
-Based on answer:
-- 기본값: Copy `templates/constitution.md`
-- 직접 작성: Create minimal template, tell user to edit
-- 나중에: Skip, note that it's optional
-
-### Step 3: steps/
+각 스텝의 `instruction.md` 파일 해시를 계산하여 기록.
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-3️⃣ steps/
-
-각 스텝의 실행 지침(instruction.md)과 결과 템플릿(spec.md)입니다.
+✅ .claude/siat/ 생성됨
 ```
 
-List available templates from `templates/steps/`:
-```
-기본 제공 스텝:
-- spec: 요구사항 분석
-- design: 설계 문서 작성
-- implement: 구현
-```
-
-Use AskUserQuestion:
-```yaml
-question: "steps를 어떻게 설정할까요?"
-options:
-  - label: "기본 스텝 사용"
-    description: "spec → design → implement 복사"
-  - label: "선택적으로"
-    description: "필요한 스텝만 선택"
-  - label: "직접 만들게"
-    description: "빈 폴더만 생성"
-```
-
-Based on answer:
-- 기본 스텝: Copy all from `templates/steps/`
-- 선택적으로: Show multiselect for steps, copy selected
-- 직접 만들게: Just create empty `.claude/siat/steps/`
-
-### Step 4: Complete
+### Step 4: 완료
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ 설정 완료!
+✅ Siat v4.0.0 초기화 완료!
 
 생성된 파일:
-.claude/siat/
-├── config.yml
-├── constitution.md
-└── steps/
-    ├── spec/
-    ├── design/
-    └── implement/
+.claude/
+├── siat/
+│   ├── config.yml
+│   ├── constitution.md
+│   ├── manifest.yml
+│   ├── specs/
+│   ├── logs/
+│   └── steps/
+│       ├── clarify/
+│       ├── spec/
+│       ├── design/
+│       ├── implement/
+│       ├── evaluate/
+│       ├── reproduce/
+│       ├── root-cause/
+│       ├── fix/
+│       └── verify/
+└── knowledge/
+    ├── architecture.md
+    ├── conventions.md
+    └── domains/
 
 다음 단계:
-1. constitution.md에 프로젝트 원칙 추가
-2. /siat:do spec "첫 태스크" 로 시작
+1. .claude/knowledge/ 확인 및 보강
+2. /do "첫 태스크" 로 시작!
 ```
-
----
-
-## Update Flow (Partial Missing)
-
-When some files exist but others don't:
-
-```
-📦 Siat 설정을 확인합니다.
-
-✅ config.yml
-❌ constitution.md
-✅ steps/ (spec, design, implement)
-```
-
-For each missing item, explain and ask:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-constitution.md가 없습니다.
-
-v3.2.0부터 추가된 기능입니다.
-모든 스텝에서 따라야 할 전역 원칙을 정의합니다.
-
-주요 기능:
-- [NEEDS CLARIFICATION] 마커로 불명확한 부분 표시
-- 프로젝트별 규칙 정의 (예: 테스트 필수)
-```
-
-Use AskUserQuestion:
-```yaml
-question: "constitution.md를 추가할까요?"
-options:
-  - label: "추가"
-    description: "기본 템플릿으로 생성"
-  - label: "스킵"
-    description: "없어도 동작함 (선택사항)"
-```
-
----
-
-## Check for Updates Flow
-
-When all required files exist:
-
-```
-📦 Siat 설정을 확인합니다.
-
-✅ config.yml
-✅ constitution.md
-✅ steps/ (spec, design, implement)
-
-모든 필수 파일이 있습니다.
-```
-
-Check for new features in templates that user might want:
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 새 기능 안내
-
-[만약 새 스텝 템플릿이 있다면]
-templates/steps/review/ 가 추가되었습니다.
-코드 리뷰 스텝을 워크플로우에 추가할 수 있습니다.
-
-[만약 템플릿에 새 섹션이 있다면]
-instruction.md에 hooks 섹션이 추가되었습니다.
-스텝별로 pre/post hook을 정의할 수 있습니다.
-
-자세한 내용은 README를 참고하세요.
-```
-
-Don't force anything, just inform.
-
----
-
-## --force Flag
-
-If `--force` is passed and files exist:
-
-```
-⚠️ 기존 파일을 덮어쓰시겠습니까?
-
-덮어쓸 파일:
-- config.yml (수정됨)
-- constitution.md (수정됨)
-- steps/spec/instruction.md (수정됨)
-```
-
-Use AskUserQuestion to confirm before overwriting.
 
 ---
 
 ## Important Notes
 
-- Always create `.claude/siat/specs/` directory for outputs
-- Use `templates/` from plugin directory as source
-- Preserve user customizations by default
-- Be informative but not pushy about optional features
+- specs/와 knowledge/는 --force로도 보존
+- manifest.yml은 sync에서 사용
+- 코드베이스 분석은 서브에이전트로 실행 (메인 컨텍스트 보존)

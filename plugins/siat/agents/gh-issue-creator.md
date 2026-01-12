@@ -15,7 +15,7 @@ post-step hook으로 호출됨:
 ```yaml
 hooks:
   post-step:
-    - script:.claude/siat/scripts/siat-gh-issue.sh {spec_path}
+    - script:${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh {spec_path}
 ```
 
 ## Process
@@ -23,7 +23,7 @@ hooks:
 **siat-gh-issue.sh 스크립트에 위임:**
 
 ```bash
-.claude/siat/scripts/siat-gh-issue.sh "{spec_path}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh "{spec_path}"
 ```
 
 스크립트가 자동으로:
@@ -47,7 +47,7 @@ hooks:
 
 미리보기만 하려면:
 ```bash
-.claude/siat/scripts/siat-gh-issue.sh "{spec_path}" --dry-run
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh "{spec_path}" --dry-run
 ```
 
 ## Fallback

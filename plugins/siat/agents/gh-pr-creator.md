@@ -16,7 +16,7 @@ implement 스텝의 post-hook으로 호출됨:
 # .claude/siat/steps/implement/instruction.md frontmatter
 hooks:
   post:
-    - script:.claude/siat/scripts/siat-gh-pr.sh {task_dir}
+    - script:${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-pr.sh {task_dir}
 ```
 
 ## Process
@@ -24,7 +24,7 @@ hooks:
 **siat-gh-pr.sh 스크립트에 위임:**
 
 ```bash
-.claude/siat/scripts/siat-gh-pr.sh "{task_dir}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-pr.sh "{task_dir}"
 ```
 
 스크립트가 자동으로:
@@ -51,7 +51,7 @@ hooks:
 
 미리보기만 하려면:
 ```bash
-.claude/siat/scripts/siat-gh-pr.sh "{task_dir}" --dry-run
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-pr.sh "{task_dir}" --dry-run
 ```
 
 ## Fallback

@@ -17,7 +17,12 @@ siat 스킬의 `scripts/` 폴더에 있음:
 - `siat-gh-issue.sh` - GitHub 이슈 생성
 - `siat-gh-pr.sh` - GitHub PR 생성
 
-**경로 참조:** 이 스킬 디렉토리의 `./scripts/` 폴더를 사용
+**경로 참조:** `${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/` 사용
+
+**스크립트 실행 실패 시 (CRITICAL):**
+- 스크립트가 없거나 실행 실패해도 **문서는 반드시 생성해야 함**
+- 메타데이터를 직접 계산: `task_id`는 request를 slugify, `spec_path`는 `{output.path}/{task_id}/{step}.md`
+- 스크립트 없이도 워크플로우의 핵심(문서 생성)은 수행
 
 ---
 
@@ -27,7 +32,7 @@ siat 스킬의 `scripts/` 폴더에 있음:
 
 **스크립트 실행:**
 ```bash
-./scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{$ARGUMENTS}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{$ARGUMENTS}"
 ```
 
 **스크립트 출력 (JSON):**
@@ -109,7 +114,7 @@ open_questions: {AI writes if any}
 
 **스크립트 실행:**
 ```bash
-./scripts/siat-post.sh "{spec_path}" .claude/siat/config.yml
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-post.sh "{spec_path}" .claude/siat/config.yml
 ```
 
 **스크립트 출력 (JSON):**
@@ -212,7 +217,7 @@ AskUserQuestion:
 ```yaml
 hooks:
   post-step:
-    - script:./scripts/siat-gh-issue.sh {spec_path}
+    - script:${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh {spec_path}
 ```
 
 ---
@@ -240,7 +245,7 @@ hooks에서 사용 가능한 prefix:
 
 | Prefix | 설명 | 예시 |
 |--------|------|------|
-| `script:` | bash 스크립트 실행 | `script:./scripts/siat-gh-issue.sh {spec_path}` |
+| `script:` | bash 스크립트 실행 | `script:${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh {spec_path}` |
 | `agent:` | Task tool로 에이전트 실행 | `agent:siat-reporter` |
 | `skill:` | Skill tool로 스킬 실행 | `skill:look-back` |
 | (none) | 기본값: agent | `siat-reporter` |
@@ -261,7 +266,7 @@ hooks에서 사용 가능한 prefix:
 > /siat:do 로그인 페이지 만들어줘
 
 # 1. siat-pre.sh 실행
-$ ./scripts/siat-pre.sh .claude/siat/config.yml "clarify" "로그인 페이지 만들어줘"
+$ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "clarify" "로그인 페이지 만들어줘"
 {
   "task_id": "로그인-페이지-만들어줘",
   "step": "clarify",
@@ -272,7 +277,7 @@ $ ./scripts/siat-pre.sh .claude/siat/config.yml "clarify" "로그인 페이지 �
 # 2. AI가 clarify 실행, spec 작성
 
 # 3. siat-post.sh 실행
-$ ./scripts/siat-post.sh ".claude/siat/specs/로그인-페이지-만들어줘/clarify.md"
+$ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-post.sh ".claude/siat/specs/로그인-페이지-만들어줘/clarify.md"
 {
   "valid": true,
   "next": {"step": "prd", "task_id": "로그인-페이지-만들어줘"}
@@ -317,3 +322,4 @@ $ ./scripts/siat-post.sh ".claude/siat/specs/로그인-페이지-만들어줘/cl
 2. **AI는 본문만** - AI는 spec 본문과 children/open_questions만 작성
 3. **검증 필수** - siat-post.sh로 반드시 검증
 4. **경로 일관성** - 항상 `{output.path}/{task_id}/{step}.md` 구조
+5. **문서 생성 필수 (CRITICAL)** - 스크립트 실패해도 spec 문서는 반드시 생성. 스크립트 없이도 AI가 메타데이터 직접 계산하여 문서 작성

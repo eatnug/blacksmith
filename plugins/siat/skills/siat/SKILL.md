@@ -24,12 +24,12 @@ description: |
 
 스텝 시작 시:
 ```bash
-./scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{request}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{request}"
 ```
 
 스텝 완료 시:
 ```bash
-./scripts/siat-post.sh "{spec_path}" .claude/siat/config.yml
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-post.sh "{spec_path}" .claude/siat/config.yml
 ```
 
 스크립트는 JSON을 출력하며, AI가 직접 계산하지 않아도 되는 메타데이터를 제공합니다.
@@ -38,10 +38,10 @@ description: |
 
 ```bash
 # 미리보기
-./scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
 
 # 실행
-./scripts/siat-migrate.sh .claude/siat/config.yml
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.yml
 ```
 
 마이그레이션 내용:
@@ -140,7 +140,7 @@ open_questions:
 
 | 접두사 | 설명 | 예시 |
 |--------|------|------|
-| `script:` | bash 스크립트 실행 | `script:./scripts/siat-gh-issue.sh {spec_path}` |
+| `script:` | bash 스크립트 실행 | `script:${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-gh-issue.sh {spec_path}` |
 | `agent:` | 에이전트 호출 | `agent:siat-reporter` |
 | `skill:` | 스킬 호출 | `skill:clarify` |
 

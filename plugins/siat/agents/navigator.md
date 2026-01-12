@@ -18,7 +18,7 @@ siat 워크플로우에서 다음 실행할 스텝을 찾습니다.
 **siat-pre.sh 스크립트에 위임:**
 
 ```bash
-.claude/siat/scripts/siat-pre.sh .claude/siat/config.yml "" "{task_id_or_request}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "" "{task_id_or_request}"
 ```
 
 스크립트가 JSON으로 모든 정보를 반환:

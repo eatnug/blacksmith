@@ -45,7 +45,7 @@ gh api "repos/${REPO}/contents/${BASE_PATH}/{path}" --jq '.content' | base64 -d
 
 **마이그레이션 스크립트 실행:**
 ```bash
-./scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
 ```
 
 **스크립트가 감지하는 항목:**
@@ -54,7 +54,7 @@ gh api "repos/${REPO}/contents/${BASE_PATH}/{path}" --jq '.content' | base64 -d
 
 **dry-run 결과 확인 후:**
 ```bash
-./scripts/siat-migrate.sh .claude/siat/config.yml
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.yml
 ```
 
 **출력 예시:**

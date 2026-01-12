@@ -8,6 +8,48 @@ description: |
 
 # Siat
 
+## 자동화 스크립트
+
+이 스킬의 `scripts/` 폴더에 자동화 스크립트가 있습니다:
+
+| 스크립트 | 용도 |
+|----------|------|
+| `siat-pre.sh` | 스텝 시작 전 메타데이터 자동 생성 |
+| `siat-post.sh` | 스텝 완료 후 검증 및 다음 스텝 계산 |
+| `siat-gh-issue.sh` | spec에서 GitHub 이슈 생성 |
+| `siat-gh-pr.sh` | implement에서 GitHub PR 생성 |
+| `siat-migrate.sh` | v5.x → v6.x 마이그레이션 |
+
+### 사용 방법
+
+스텝 시작 시:
+```bash
+./scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{request}"
+```
+
+스텝 완료 시:
+```bash
+./scripts/siat-post.sh "{spec_path}" .claude/siat/config.yml
+```
+
+스크립트는 JSON을 출력하며, AI가 직접 계산하지 않아도 되는 메타데이터를 제공합니다.
+
+### 마이그레이션 (v5.x → v6.x)
+
+```bash
+# 미리보기
+./scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
+
+# 실행
+./scripts/siat-migrate.sh .claude/siat/config.yml
+```
+
+마이그레이션 내용:
+- 기존 `.claude/siat/scripts/` 폴더 삭제 (스킬에 포함됨)
+- 스텝 단위 → 피쳐 단위 문서 구조 변환
+
+---
+
 ## 파일 수정 규칙
 
 `.claude/siat/` 하위 파일을 수정할 때 반드시 이 규칙을 따르세요.
@@ -30,11 +72,9 @@ execution:
   mode: "manual"  # "manual" | "auto"
 
 hooks:
-  pre-step:        # 스텝 실행 전 훅
-    - agent:navigator
-    - skill:clarify
-  post-step:       # 스텝 실행 후 훅
-    - agent:reporter
+  pre-step: []
+  post-step: []
+  post-workflow: []
 ```
 
 **허용되는 키만 사용하세요.** 임의의 키 추가 금지.
@@ -47,60 +87,50 @@ hooks:
 └── spec.md          # 결과물 템플릿
 ```
 
-### instruction.md 형식
+### Spec 문서 저장 구조 (CRITICAL)
 
-```markdown
----
-name: step-name
-description: 이 스텝이 하는 일
-
-inputs:
-  - 필요한 정보 1
-  - 필요한 정보 2
-
-outputs:
-  - 결과물 1
-  - 결과물 2
-
-hooks:                    # 스텝별 훅 (config 오버라이드)
-  pre-step:
-    - skill:clarify
-  post-step:
-    - agent:reporter
----
-
-# Step Name
-
-스텝 실행 지침...
+**피쳐 단위로 저장:**
+```
+{output.path}/{task_id}/{step}.md
 ```
 
-### spec.md 형식
-
-```markdown
-# Step Name: {{title}}
-
-## 요약
-
-## 상세 내용
-
-## 결과
+예시:
+```
+.claude/siat/specs/
+└── login-page/
+    ├── clarify.md
+    ├── prd.md
+    ├── design.md
+    └── implement.md
 ```
 
+**절대 스텝 단위로 저장하지 않음:**
+```
+# 잘못된 구조 - 사용 금지
+.claude/siat/specs/
+├── clarify/
+│   └── login-page.md
+├── prd/
+│   └── login-page.md
+```
+
+### Spec Frontmatter 형식
+
+```yaml
 ---
+id: {task_id}                    # 태스크 식별자
+steps: [current, next1, next2]   # 남은 스텝들
+parent: {step/task_id} | null    # 이전 문서
+children: [{step/task_id}, ...]  # 다음 문서들
 
-## 실행 모드
-
-### manual (기본)
-
-- 스텝이 메인 컨텍스트에서 실행
-- 분석 과정이 컨텍스트에 쌓임
-- 세션 분리는 사용자가 직접 관리
-
-### auto
-
-- 스텝이 서브에이전트에서 실행
-- 결과 요약만 메인 컨텍스트에 남음
-- `--auto` 플래그로 강제 가능
+# 선택적
+open_questions:
+  - question: "질문"
+    context: "왜 필요한지"
+    resolved: false
+    answer: null
+---
+```
 
 ---
 
@@ -110,53 +140,43 @@ hooks:                    # 스텝별 훅 (config 오버라이드)
 
 | 접두사 | 설명 | 예시 |
 |--------|------|------|
-| `agent:` | 에이전트 호출 | `agent:navigator` |
+| `script:` | bash 스크립트 실행 | `script:./scripts/siat-gh-issue.sh {spec_path}` |
+| `agent:` | 에이전트 호출 | `agent:siat-reporter` |
 | `skill:` | 스킬 호출 | `skill:clarify` |
 
-### 실행 순서
+### 변수 치환
 
-```
-pre-step hooks → step 실행 → post-step hooks
-```
-
-### 훅 병합
-
-스텝의 instruction.md에 hooks가 있으면 config.yml과 합쳐짐 (extend).
-
-```
-최종 pre-step = 전역 pre-step + 스텝별 pre-step
-최종 post-step = 전역 post-step + 스텝별 post-step
-```
-
-전역 훅이 먼저 실행되고, 스텝별 훅이 그 다음.
+훅에서 사용 가능한 변수:
+- `{spec_path}` → 현재 spec 파일 경로
+- `{task_id}` → 현재 태스크 ID
+- `{task_dir}` → 태스크 디렉토리 경로
+- `{step}` → 현재 스텝 이름
 
 ---
 
 ## 워크플로우 실행
 
-### /siat:do [--auto] [step] [request]
+### /siat:do [task-id] [request]
 
-1. **인자 파싱**
-   - `--auto`: auto 모드 강제
-   - `step`: 실행할 스텝 (없으면 navigator 사용)
-   - `request`: 사용자 요청
+1. **Pre-step 스크립트 실행** → 메타데이터 자동 생성
+2. **AI 스텝 실행** → 본문 작성, children/open_questions 결정
+3. **Post-step 스크립트 실행** → 검증, 다음 스텝 계산
+4. **Hooks 실행** → 설정된 pre/post hooks
 
-2. **훅 실행**
-   - pre-step, post-step 훅은 항상 서브에이전트로 실행
-   - `siat-hook-runner` 에이전트가 처리
+### AI가 하는 일
 
-3. **스텝 실행**
-   - manual 모드: 메인에서 직접
-   - auto 모드: `siat-step-executor`가 처리
+- instruction.md 따라 분석/작업
+- spec.md 템플릿의 본문 작성
+- children 배열 결정 (fork 여부)
+- open_questions 작성
 
-### 결과물 구조
+### AI가 하지 않는 일 (스크립트 처리)
 
-```
-.claude/siat/specs/
-└── {task-slug}/
-    ├── plan.md
-    └── implement.md
-```
+- ❌ task_id 생성 (slugify)
+- ❌ 디렉토리 생성
+- ❌ 경로 계산
+- ❌ parent 추적
+- ❌ steps 배열 계산
 
 ---
 
@@ -164,7 +184,8 @@ pre-step hooks → step 실행 → post-step hooks
 
 | 에이전트 | 역할 |
 |----------|------|
-| `siat-hook-runner` | 훅 실행 (skill/agent 모두 처리) |
 | `siat-navigator` | 다음 스텝 찾기 |
 | `siat-reporter` | 결과 리포트 생성 |
-| `siat-step-executor` | 스텝 실행 (agent 모드) |
+| `siat-step-executor` | 스텝 실행 (auto mode) |
+| `siat-gh-issue-creator` | GitHub 이슈 생성 |
+| `siat-gh-pr-creator` | GitHub PR 생성 |

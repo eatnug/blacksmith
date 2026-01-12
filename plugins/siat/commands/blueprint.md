@@ -25,13 +25,68 @@ Best practice 템플릿을 GitHub에서 다운로드하여 프로젝트에 **강
 
 ---
 
-## Step 0: 체크섬 비교 (--force 아닐 때만)
+## GitHub API 설정
+
+```
+REPO="eatnug/blacksmith"
+BASE_PATH="plugins/siat/templates"
+```
+
+파일 다운로드 함수 (gh CLI 사용):
+```bash
+gh api "repos/${REPO}/contents/${BASE_PATH}/{path}" --jq '.content' | base64 -d
+```
+
+---
+
+## Step 0: v5.x → v6.x 마이그레이션
+
+기존 siat 설정이 있으면 마이그레이션 수행:
+
+**마이그레이션 스크립트 실행:**
+```bash
+./scripts/siat-migrate.sh .claude/siat/config.yml --dry-run
+```
+
+**스크립트가 감지하는 항목:**
+1. **기존 scripts 폴더**: `.claude/siat/scripts/` (v6.0부터 스킬에 포함)
+2. **스텝 단위 문서**: `specs/clarify/task-id.md` → `specs/task-id/clarify.md`
+
+**dry-run 결과 확인 후:**
+```bash
+./scripts/siat-migrate.sh .claude/siat/config.yml
+```
+
+**출력 예시:**
+```json
+{
+  "actions": ["remove_old_scripts", "convert_to_feature_centric"],
+  "migrated_files": [
+    "clarify/login-page.md -> login-page/clarify.md",
+    "design/login-page.md -> login-page/design.md"
+  ],
+  "summary": { "files_migrated": 2, "dirs_removed": 3 }
+}
+```
+
+**마이그레이션 완료 후:**
+```
+✅ v6.0 마이그레이션 완료
+
+📁 문서 구조 변환: {n}개 파일
+🗑️ 정리됨: 기존 scripts 폴더, 빈 스텝 폴더
+```
+
+---
+
+## Step 0.5: 체크섬 비교 (--force 아닐 때만)
 
 `--force`가 **아닐 때만** 체크섬 비교 수행:
 
-1. WebFetch로 원격 CHECKSUM 다운로드:
-   - URL: `{base}/CHECKSUM`
-   - prompt: "Return the checksum string exactly as-is, trimmed"
+1. gh CLI로 원격 CHECKSUM 다운로드:
+```bash
+REMOTE_CHECKSUM=$(gh api "repos/${REPO}/contents/${BASE_PATH}/CHECKSUM" --jq '.content' | base64 -d | tr -d '\n')
+```
 
 2. Read로 로컬 CHECKSUM 확인:
    - path: `.claude/siat/CHECKSUM`
@@ -49,20 +104,16 @@ Best practice 템플릿을 GitHub에서 다운로드하여 프로젝트에 **강
 
 ---
 
-## Step 1: GitHub에서 템플릿 config.yml fetch
+## Step 1: 원격 config.yml 다운로드
 
-GitHub raw URL base:
+```bash
+REMOTE_CONFIG=$(gh api "repos/${REPO}/contents/${BASE_PATH}/config.yml" --jq '.content' | base64 -d)
 ```
-https://raw.githubusercontent.com/eatnug/blacksmith/main/plugins/siat/templates
-```
-
-WebFetch로 `{base}/config.yml` 다운로드.
-- prompt: "Return the entire YAML content exactly as-is, no modifications"
 
 **실패 시:**
 ```
 ❌ 템플릿을 다운로드할 수 없습니다.
-네트워크 연결을 확인해주세요.
+gh CLI가 설치되어 있고 인증되었는지 확인해주세요.
 ```
 → 여기서 중단.
 
@@ -87,37 +138,30 @@ rm -rf ".claude/siat/steps"
 
 ## Step 3: 스텝 디렉토리 생성 및 템플릿 다운로드
 
-스텝 목록 (config.yml에서 파싱):
-- clarify
-- reproduce
-- root-cause
-- prd
-- design
-- visual-design
-- implement
-- fix
-- verify
+스텝 목록:
+- clarify, reproduce, root-cause, prd, design, visual-design, implement, fix, verify
 
-각 스텝에 대해:
+**한 번의 Bash로 모든 스텝 다운로드** (권한 허용 1회):
 
-1. 디렉토리 생성:
 ```bash
-mkdir -p ".claude/siat/steps/{step_name}"
+REPO="eatnug/blacksmith"
+BASE_PATH="plugins/siat/templates"
+STEPS="clarify reproduce root-cause prd design visual-design implement fix verify"
+
+for step in $STEPS; do
+  mkdir -p ".claude/siat/steps/${step}"
+
+  # instruction.md
+  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/instruction.md" \
+    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/instruction.md"
+
+  # spec.md
+  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/spec.md" \
+    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/spec.md"
+
+  echo "✓ ${step}"
+done
 ```
-
-2. WebFetch로 instruction.md 다운로드:
-   - URL: `{base}/steps/{step_name}/instruction.md`
-   - prompt: "Return the entire markdown content exactly as-is, no modifications"
-
-3. WebFetch로 spec.md 다운로드:
-   - URL: `{base}/steps/{step_name}/spec.md`
-   - prompt: "Return the entire markdown content exactly as-is, no modifications"
-
-4. Write 도구로 저장:
-   - path: `.claude/siat/steps/{step_name}/instruction.md`
-   - path: `.claude/siat/steps/{step_name}/spec.md`
-
-**병렬 처리 권장**: 여러 WebFetch를 동시에 실행하여 속도 향상.
 
 **CRITICAL**: 각 스텝은 반드시 `instruction.md`와 `spec.md` 두 파일을 모두 가져야 합니다.
 
@@ -161,7 +205,7 @@ execution:
 
 hooks:
   pre-step: {추출한 값 또는 []}
-  post-step: {추출한 값 또는 [agent:siat-learner]}
+  post-step: {추출한 값 또는 []}
   post-workflow: {추출한 값 또는 []}
 ```
 
@@ -174,7 +218,7 @@ hooks:
 원격에서 받은 CHECKSUM을 로컬에 저장:
 
 ```bash
-Write ".claude/siat/CHECKSUM" with remote checksum string
+echo "${REMOTE_CHECKSUM}" > .claude/siat/CHECKSUM
 ```
 
 이후 체크섬 비교에서 사용됨.
@@ -208,7 +252,7 @@ Best practice가 적용되었습니다.
 
 ## 핵심 원칙
 
-1. **원격 템플릿** - GitHub에서 최신 best practice 다운로드
+1. **gh CLI 사용** - WebFetch 대신 gh CLI로 권한 허용 최소화
 2. **항상 백업** - `--force` 아니면 기존 설정 백업
 3. **전체 동기화** - 부분 업데이트 없음, 항상 전체 적용
 4. **설정 보존** - `workflow`, `output`, `hooks`, `execution` 유지

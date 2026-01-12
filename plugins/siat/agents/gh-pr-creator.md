@@ -1,115 +1,64 @@
 ---
 name: siat-gh-pr-creator
 description: Create GitHub PR from implement step output
-tools: Read, Glob, Bash
+tools: Read, Bash
 model: haiku
 ---
 
 # GitHub PR Creator
 
-You create a GitHub Pull Request after implement step completion.
+implement 스텝 완료 후 GitHub PR을 생성합니다.
 
-## Input
+## When Called
 
-You receive:
-- `task_slug`: The task identifier (e.g., `create-header`)
-- `step`: Always `implement`
-- `output_path`: Path to specs directory (e.g., `.claude/siat/specs`)
-
-## Execution
-
-### 1. Read All Specs
-
-Read the full task documentation:
-```
-{output_path}/{task_slug}/spec.md      # Requirements
-{output_path}/{task_slug}/design.md    # Technical design
-{output_path}/{task_slug}/implement.md # Implementation notes
+implement 스텝의 post-hook으로 호출됨:
+```yaml
+# .claude/siat/steps/implement/instruction.md frontmatter
+hooks:
+  post:
+    - script:.claude/siat/scripts/siat-gh-pr.sh {task_dir}
 ```
 
-### 2. Check Git Status
+## Process
+
+**siat-gh-pr.sh 스크립트에 위임:**
 
 ```bash
-git status --porcelain
+.claude/siat/scripts/siat-gh-pr.sh "{task_dir}"
 ```
 
-If no changes, return error: "No changes to commit"
-
-### 3. Create Branch (if needed)
-
-Check current branch:
-```bash
-git branch --show-current
-```
-
-If on main/master, create feature branch:
-```bash
-git checkout -b feat/{task_slug}
-```
-
-### 4. Commit Changes
-
-```bash
-git add -A
-git commit -m "feat: {task_slug}
-
-{brief description from spec}"
-```
-
-### 5. Push and Create PR
-
-```bash
-git push -u origin HEAD
-```
-
-Create PR with comprehensive body:
-
-```bash
-gh pr create --title "feat: {Title from spec}" --body "{PR body}"
-```
-
-**PR Body Format:**
-```markdown
-## Summary
-{From spec.md - what this implements}
-
-## Changes
-{From implement.md - what was done}
-
-## Design Decisions
-{From design.md - key technical decisions}
-
-## Test Plan
-{From implement.md - verification steps}
-
----
-📋 Specs: `{output_path}/{task_slug}/`
-```
-
-### 6. Update Implement Spec
-
-Append the PR URL to implement.md:
-
-```markdown
----
-## GitHub PR
-- PR: #{pr_number}
-- URL: {pr_url}
-- Branch: {branch_name}
-```
+스크립트가 자동으로:
+1. task 디렉토리의 모든 spec 읽기 (clarify, prd, design, implement)
+2. git status 확인
+3. feature branch 생성/체크아웃
+4. commit 생성
+5. push 및 `gh pr create` 실행
+6. PR URL을 implement.md frontmatter에 추가
 
 ## Output
 
-Return:
-```
-✅ GitHub PR created
-- PR: #{number}
-- URL: {url}
-- Branch: {branch}
+```json
+{
+  "success": true,
+  "pr_url": "https://github.com/owner/repo/pull/456",
+  "pr_number": "456",
+  "title": "feat: Login Page",
+  "branch": "feat/login-page"
+}
 ```
 
-## Error Handling
+## Dry Run
 
-- If `gh` CLI not authenticated: Ask user to run `gh auth login`
-- If no changes: Return "No changes to create PR"
-- If uncommitted changes conflict: Ask user to resolve first
+미리보기만 하려면:
+```bash
+.claude/siat/scripts/siat-gh-pr.sh "{task_dir}" --dry-run
+```
+
+## Fallback
+
+스크립트가 없으면 직접 처리:
+1. implement.md 읽기
+2. git status 확인
+3. branch 생성: `feat/{task_id}`
+4. commit: `feat: {Title}`
+5. `gh pr create` 실행

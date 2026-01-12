@@ -1,70 +1,59 @@
 ---
 name: siat-gh-issue-creator
 description: Create GitHub issue from spec/design output
-tools: Read, Glob, Bash
+tools: Read, Bash
 model: haiku
 ---
 
 # GitHub Issue Creator
 
-You create a GitHub issue from siat workflow step output.
+spec 문서에서 GitHub 이슈를 생성합니다.
 
-## Input
+## When Called
 
-You receive:
-- `task_slug`: The task identifier (e.g., `create-header`)
-- `step`: Which step just completed (`spec` or `design`)
-- `output_path`: Path to specs directory (e.g., `.claude/siat/specs`)
-
-## Execution
-
-### 1. Read Step Output
-
-Read the completed step's output file:
-```
-{output_path}/{task_slug}/{step}.md
+post-step hook으로 호출됨:
+```yaml
+hooks:
+  post-step:
+    - script:.claude/siat/scripts/siat-gh-issue.sh {spec_path}
 ```
 
-### 2. Extract Issue Content
+## Process
 
-From the spec/design document, extract:
-- **Title**: Task slug formatted as title (e.g., `create-header` → `[Spec] Create Header`)
-- **Body**: The full content of the spec/design document
-
-### 3. Create GitHub Issue
-
-Use `gh issue create`:
+**siat-gh-issue.sh 스크립트에 위임:**
 
 ```bash
-gh issue create --title "[{Step}] {Title}" --body "{body}"
+.claude/siat/scripts/siat-gh-issue.sh "{spec_path}"
 ```
 
-Format the body as markdown. Include:
-- Step type label (spec/design)
-- Full document content
-- Link back to the spec file path
-
-### 4. Update Spec with Issue Link
-
-Append the issue URL to the spec file:
-
-```markdown
----
-## GitHub Issue
-- Issue: #{issue_number}
-- URL: {issue_url}
-```
+스크립트가 자동으로:
+1. spec 파일에서 제목, 본문 추출
+2. 스텝에 따른 라벨 결정
+3. `gh issue create` 실행
+4. 이슈 URL을 spec frontmatter에 추가
 
 ## Output
 
-Return:
-```
-✅ GitHub Issue created
-- Issue: #{number}
-- URL: {url}
+```json
+{
+  "success": true,
+  "issue_url": "https://github.com/owner/repo/issues/123",
+  "issue_number": "123",
+  "title": "[clarify] Login Page"
+}
 ```
 
-## Error Handling
+## Dry Run
 
-- If `gh` CLI not authenticated: Return error message asking user to run `gh auth login`
-- If spec file not found: Return error with expected path
+미리보기만 하려면:
+```bash
+.claude/siat/scripts/siat-gh-issue.sh "{spec_path}" --dry-run
+```
+
+## Fallback
+
+스크립트가 없으면 직접 처리:
+1. spec 파일 읽기
+2. 제목: task-id를 Title Case로 변환
+3. 본문: Summary, Requirements, Acceptance 섹션 추출
+4. `gh issue create` 실행

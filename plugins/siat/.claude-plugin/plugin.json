@@ -1,7 +1,7 @@
 {
   "name": "siat",
   "description": "SDD framework with document-driven workflow. Each spec document defines the next step via parent/children chain.",
-  "version": "5.12.0",
+  "version": "6.0.0",
   "author": {
     "name": "eatnug"
   },

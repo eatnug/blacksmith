@@ -126,6 +126,8 @@ hooks:
 ├── specs/
 └── steps/    (비어있음)
 
+📦 스크립트는 siat 스킬의 scripts/ 폴더에 포함되어 있습니다.
+
 ▶️ 다음 단계: /siat blueprint 로 스텝 템플릿을 적용하세요!
 ```
 

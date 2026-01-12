@@ -172,14 +172,14 @@ children: {다음 문서 경로들}
 {스텝 결과물}
 ```
 
-저장: `{output.path}/{step}/{task-id}.md`
+저장: `{output.path}/{task-id}/{step}.md`
 
 ### 5. 보고
 
 ```
 ✅ spec 완료: login-page
 
-📄 생성: .claude/siat/specs/spec/login-page.md
+📄 생성: .claude/siat/specs/login-page/spec.md
 
 📍 다음: design
 

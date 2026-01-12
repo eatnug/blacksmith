@@ -138,42 +138,27 @@ rm -rf ".claude/siat/steps"
 
 ## Step 3: 스텝 디렉토리 생성 및 템플릿 다운로드
 
-스텝 목록:
-- clarify, reproduce, root-cause, prd, design, visual-design, implement, fix, verify
+**9개 Bash 호출을 병렬로 실행** (한 번에 9개 tool call):
 
-**한 번의 Bash로 모든 스텝 병렬 다운로드** (권한 허용 1회):
+각 스텝에 대해 동일한 패턴의 Bash 호출:
 
-```bash
-REPO="eatnug/blacksmith"
-BASE_PATH="plugins/siat/templates"
-STEPS="clarify reproduce root-cause prd design visual-design implement fix verify"
+| 스텝 | Bash 명령 |
+|------|-----------|
+| clarify | `mkdir -p .claude/siat/steps/clarify && gh api repos/eatnug/blacksmith/contents/plugins/siat/templates/steps/clarify/instruction.md --jq '.content' \| base64 -d > .claude/siat/steps/clarify/instruction.md && gh api repos/eatnug/blacksmith/contents/plugins/siat/templates/steps/clarify/spec.md --jq '.content' \| base64 -d > .claude/siat/steps/clarify/spec.md` |
+| reproduce | (같은 패턴, 스텝명만 변경) |
+| root-cause | (같은 패턴) |
+| prd | (같은 패턴) |
+| design | (같은 패턴) |
+| visual-design | (같은 패턴) |
+| implement | (같은 패턴) |
+| fix | (같은 패턴) |
+| verify | (같은 패턴) |
 
-# 디렉토리 먼저 생성
-for step in $STEPS; do
-  mkdir -p ".claude/siat/steps/${step}"
-done
+**실행 방법**: 위 9개 Bash 호출을 **하나의 응답에서 병렬로** 실행
 
-# 병렬 다운로드 함수
-download_step() {
-  local step=$1
-  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/instruction.md" \
-    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/instruction.md" &
-  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/spec.md" \
-    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/spec.md" &
-}
-
-# 모든 스텝 병렬 시작
-for step in $STEPS; do
-  download_step "$step"
-done
-
-# 모든 다운로드 완료 대기
-wait
-
-echo "✓ 9개 스텝 다운로드 완료"
-```
-
-**CRITICAL**: 각 스텝은 반드시 `instruction.md`와 `spec.md` 두 파일을 모두 가져야 합니다.
+**CRITICAL**:
+- 9개 스텝 모두 다운로드해야 함
+- 각 스텝은 `instruction.md`와 `spec.md` 두 파일 필수
 
 ---
 

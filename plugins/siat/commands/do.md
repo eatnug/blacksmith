@@ -145,14 +145,66 @@ open_questions: {AI writes if any}
 
 `unresolved_questions`가 있으면:
 
-1. `AskUserQuestion`으로 각 질문 처리
+1. `AskUserQuestion`으로 각 질문 처리 (여러 질문을 한 번에 묶어서)
 2. 답변 받으면 spec 문서 업데이트:
-   - frontmatter: `resolved: true`, `answer: "..."` 추가
-   - 본문: 답변 내용 반영
+   - frontmatter의 `open_questions`: `resolved: true`, `answer: "..."` 추가
+   - 본문: 해당 섹션에 답변 내용 반영
+3. 업데이트된 spec으로 `siat-post.sh` 다시 실행하여 검증
+
+**질문 예시:**
+```
+AskUserQuestion:
+  questions:
+    - question: "인증 방식을 어떻게 할까요?"
+      header: "인증"
+      options:
+        - label: "JWT"
+          description: "stateless, 토큰 기반"
+        - label: "Session"
+          description: "서버 상태 유지"
+```
 
 ---
 
-### 8. Post-Step Hooks
+### 8. User Approval
+
+스텝 완료 후 결과 보고 및 유저 승인:
+
+**결과 보고:**
+```
+✅ {step} 완료: {task_id}
+
+📄 생성: {spec_path}
+
+📍 다음: {next.step} (또는 "🎉 완료")
+```
+
+**유저 승인 (AskUserQuestion):**
+
+```
+AskUserQuestion:
+  questions:
+    - question: "{step} 결과를 확인해주세요. 어떻게 할까요?"
+      header: "승인"
+      options:
+        - label: "수락 & 진행"
+          description: "결과를 수락하고 다음 단계로 진행합니다"
+        - label: "수락 & 중단"
+          description: "결과를 수락하고 여기서 멈춥니다"
+        - label: "피드백 & 재시도"
+          description: "피드백을 주고 이 단계를 다시 실행합니다"
+```
+
+**응답별 처리:**
+- **수락 & 진행**: post-step hooks 실행 → 다음 스텝으로
+- **수락 & 중단**: post-step hooks 실행 → 워크플로우 종료
+- **피드백 & 재시도**: 피드백 입력 받고 → 스텝 4로 돌아가 재실행 (hooks 실행 안 함)
+
+---
+
+### 9. Post-Step Hooks
+
+**수락 후에만 실행됨** (재시도 시에는 실행 안 함)
 
 `config.hooks.post-step` + `instruction.md frontmatter hooks.post`가 있으면 실행.
 
@@ -165,22 +217,20 @@ hooks:
 
 ---
 
-### 9. Report & Continue
+### 10. Continue or Complete
 
-**Manual mode:**
-```
-✅ {step} 완료: {task_id}
-
-📄 생성: {spec_path}
-
-📍 다음: {next.step} (또는 "완료")
-
-▶️ 계속: /siat:do {task_id}
-```
+**수락 & 진행 선택 시:**
+- `next.is_complete`가 true면 워크플로우 완료
+- false면 다음 스텝 실행 (fork 시 순차 처리)
 
 **Auto mode:**
-- `next.is_complete`가 true일 때까지 자동 진행
-- fork 시 병렬 처리
+- 승인 후 다음 스텝이 자동으로 시작됨
+
+**Manual mode:**
+- 승인 후 다음 스텝 커맨드 안내
+```
+▶️ 계속: /siat:do {task_id}
+```
 
 ---
 

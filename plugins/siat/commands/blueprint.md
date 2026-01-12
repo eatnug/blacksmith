@@ -170,6 +170,7 @@ Read로 `.claude/siat/config.yml` 읽어서 **다음 값들만** 추출:
 - `workflow.name` (없으면 "siat")
 - `workflow.description` (없으면 "SDD 프레임워크 - 문서 기반 워크플로우")
 - `output.path` (없으면 ".claude/siat/specs")
+- `execution.mode` (없으면 "manual")
 - `hooks` (없으면 템플릿 기본값)
 
 ### 4-2. config.yml 완전히 덮어쓰기
@@ -196,7 +197,7 @@ output:
   path: "{추출한 path}"
 
 execution:
-  mode: "manual"
+  mode: "{추출한 mode}"
 
 hooks:
   pre-step: {추출한 값 또는 []}
@@ -250,4 +251,4 @@ Best practice가 적용되었습니다.
 1. **gh CLI 사용** - WebFetch 대신 gh CLI로 권한 허용 최소화
 2. **항상 백업** - `--force` 아니면 기존 설정 백업
 3. **전체 동기화** - 부분 업데이트 없음, 항상 전체 적용
-4. **설정 보존** - `workflow`, `output`, `hooks`, `execution` 유지
+4. **설정 보존** - `workflow`, `output.path`, `execution.mode`, `hooks` 유지

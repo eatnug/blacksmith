@@ -100,8 +100,8 @@ interface ComponentProps {
 ---
 id: "{task-id}"
 steps: [design, implement, verify]  # 남은 스텝들
-parent: "prd/{task-id}"
-children: ["implement/{task-id}"]  # 다음 스텝
+parent: "{task-id}/prd"
+children: ["{task-id}/implement"]  # 다음 스텝
 ---
 
 # Design: {태스크 제목}

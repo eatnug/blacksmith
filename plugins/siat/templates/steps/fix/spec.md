@@ -1,8 +1,8 @@
 ---
 id: "{task-id}"
 steps: [fix, verify]
-parent: "root-cause/{task-id}"
-children: ["verify/{task-id}"]
+parent: "{task-id}/root-cause"
+children: ["{task-id}/verify"]
 ---
 
 # Fix: {버그 제목}

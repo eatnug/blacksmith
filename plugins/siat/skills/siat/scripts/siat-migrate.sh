@@ -157,6 +157,83 @@ if [[ "$STEP_CENTRIC_DETECTED" == "true" ]]; then
 fi
 
 # ============================================================================
+# 3. Convert link format in frontmatter (step/task_id → task_id/step)
+# ============================================================================
+
+LINK_CONVERSIONS=""
+
+# Function to convert a link from step/id to id/step format
+convert_link() {
+    local link="$1"
+    # Check if it's in old format (contains / and step is before /)
+    if [[ "$link" =~ ^([^/]+)/([^/]+)$ ]]; then
+        local first="${BASH_REMATCH[1]}"
+        local second="${BASH_REMATCH[2]}"
+        # Check if first part is a known step name
+        for step in "${STEPS[@]}"; do
+            if [[ "$first" == "$step" ]]; then
+                # Convert: step/task_id → task_id/step
+                echo "${second}/${first}"
+                return
+            fi
+        done
+    fi
+    # Not old format, return as-is
+    echo "$link"
+}
+
+# Find all spec files and update frontmatter
+if [[ -d "$OUTPUT_PATH" ]]; then
+    while IFS= read -r -d '' spec_file; do
+        [[ -z "$spec_file" ]] && continue
+
+        NEEDS_UPDATE=false
+
+        # Check if file has old format links
+        if grep -q 'parent:.*"[a-z-]\+/[a-z0-9-]\+"' "$spec_file" 2>/dev/null; then
+            # Check if any step name appears before /
+            for step in "${STEPS[@]}"; do
+                if grep -q "parent:.*\"${step}/" "$spec_file" 2>/dev/null; then
+                    NEEDS_UPDATE=true
+                    break
+                fi
+            done
+        fi
+
+        if grep -q 'children:' "$spec_file" 2>/dev/null; then
+            for step in "${STEPS[@]}"; do
+                if grep -q "\"${step}/" "$spec_file" 2>/dev/null; then
+                    NEEDS_UPDATE=true
+                    break
+                fi
+            done
+        fi
+
+        if [[ "$NEEDS_UPDATE" == "true" ]]; then
+            if [[ "$DRY_RUN" == "false" ]]; then
+                # Create temp file for sed output
+                TMP_FILE=$(mktemp)
+
+                # Convert parent and children links
+                # Pattern: "step/task_id" → "task_id/step"
+                cp "$spec_file" "$TMP_FILE"
+
+                for step in "${STEPS[@]}"; do
+                    # Convert parent: "step/xxx" → parent: "xxx/step"
+                    sed -i.bak "s|parent: \"${step}/\([^\"]*\)\"|parent: \"\1/${step}\"|g" "$TMP_FILE"
+                    # Convert children array items
+                    sed -i.bak "s|\"${step}/\([^\"]*\)\"|\"\\1/${step}\"|g" "$TMP_FILE"
+                done
+
+                mv "$TMP_FILE" "$spec_file"
+                rm -f "${TMP_FILE}.bak" "$spec_file.bak" 2>/dev/null || true
+            fi
+            LINK_CONVERSIONS="${LINK_CONVERSIONS}${spec_file}\n"
+        fi
+    done < <(find "$OUTPUT_PATH" -name "*.md" -type f -print0 2>/dev/null)
+fi
+
+# ============================================================================
 # Output
 # ============================================================================
 
@@ -164,21 +241,30 @@ fi
 ACTIONS_JSON=$(echo -e "$ACTIONS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
 MIGRATED_JSON=$(echo -e "$MIGRATED_FILES" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
 REMOVED_JSON=$(echo -e "$REMOVED_DIRS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
+LINKS_JSON=$(echo -e "$LINK_CONVERSIONS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
+
+# Add action if link conversions happened
+if [[ -n "$LINK_CONVERSIONS" ]]; then
+    ACTIONS_JSON=$(echo "$ACTIONS_JSON" | jq '. + ["convert_link_format"]')
+fi
 
 jq -n \
     --argjson dry_run "$DRY_RUN" \
     --argjson actions "$ACTIONS_JSON" \
     --argjson migrated "$MIGRATED_JSON" \
     --argjson removed "$REMOVED_JSON" \
+    --argjson links "$LINKS_JSON" \
     --arg output_path "$OUTPUT_PATH" \
     '{
         dry_run: $dry_run,
         actions: $actions,
         migrated_files: $migrated,
         removed_dirs: $removed,
+        link_format_converted: $links,
         output_path: $output_path,
         summary: {
             files_migrated: ($migrated | length),
-            dirs_removed: ($removed | length)
+            dirs_removed: ($removed | length),
+            links_converted: ($links | length)
         }
     }'

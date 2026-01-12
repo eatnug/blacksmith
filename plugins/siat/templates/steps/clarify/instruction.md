@@ -95,7 +95,7 @@ clarify → reproduce → root-cause → prd → design → visual-design → im
 id: "{task-slug}"
 steps: [clarify, prd, design, implement, verify]  # 이 태스크의 스텝들
 parent: null
-children: [prd/{task-slug}]  # 또는 fork 시 여러 개
+children: [{task-slug}/prd]  # 또는 fork 시 여러 개
 ---
 
 # Clarify: {태스크 제목}

@@ -94,7 +94,7 @@ siat 스킬의 `scripts/` 폴더에 있음:
 id: {from script: frontmatter.id}
 steps: {from script: frontmatter.steps}
 parent: {from script: frontmatter.parent}
-children: {AI decides: [] or ["design/login-page"] or ["design/login-ui", "design/login-api"]}
+children: {AI decides: [] or ["login-page/design"] or ["login-ui/design", "login-api/design"]}
 open_questions: {AI writes if any}
 ---
 
@@ -121,7 +121,7 @@ open_questions: {AI writes if any}
   "spec": {
     "task_id": "login-page",
     "step": "clarify",
-    "children": ["prd/login-page"]
+    "children": ["login-page/prd"]
   },
   "next": {
     "step": "prd",
@@ -246,7 +246,7 @@ $ ./scripts/siat-post.sh ".claude/siat/specs/로그인-페이지-만들어줘/cl
 {
   "next": {
     "is_fork": true,
-    "fork_children": ["design/login-ui", "design/login-api"]
+    "fork_children": ["login-ui/design", "login-api/design"]
   }
 }
 

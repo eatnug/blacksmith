@@ -1,7 +1,7 @@
 ---
 id: "{task-id}"
 steps: [verify]
-parent: "implement/{task-id}"
+parent: "{task-id}/implement"
 children: []
 ---
 

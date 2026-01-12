@@ -1,8 +1,8 @@
 ---
 id: "{task-id}"
 steps: [implement, verify]
-parent: "design/{task-id}"
-children: ["verify/{task-id}"]
+parent: "{task-id}/design"
+children: ["{task-id}/verify"]
 ---
 
 # Implement: {태스크 제목}

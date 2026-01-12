@@ -82,8 +82,8 @@ Then: [기대 결과]
 ---
 id: "{task-id}"
 steps: [prd, design, implement, verify]  # 남은 스텝들
-parent: "clarify/{task-id}"
-children: ["design/{task-id}"]  # 다음 스텝
+parent: "{task-id}/clarify"
+children: ["{task-id}/design"]  # 다음 스텝
 ---
 
 # PRD: {태스크 제목}

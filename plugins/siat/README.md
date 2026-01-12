@@ -20,8 +20,8 @@ Siat는 SDD(Spec-Driven Development) 프레임워크입니다. 각 스텝이 spe
 ---
 id: "login-page"                    # 태스크 식별자
 steps: [spec, design, implement, verify]  # 남은 스텝들
-parent: "clarify/login-page"        # 이전 문서
-children: ["design/login-page"]     # 다음 문서(들)
+parent: "login-page/clarify"        # 이전 문서
+children: ["login-page/design"]     # 다음 문서(들)
 ---
 
 # 문서 본문
@@ -33,15 +33,15 @@ children: ["design/login-page"]     # 다음 문서(들)
 문서들이 `parent`/`children`으로 연결되어 워크플로우를 형성합니다.
 
 ```
-clarify/login-page
-    ↓ children: [spec/login-page]
-spec/login-page
-    ↓ children: [design/login-page]
-design/login-page
-    ↓ children: [implement/login-page]
-implement/login-page
-    ↓ children: [verify/login-page]
-verify/login-page
+login-page/clarify
+    ↓ children: [login-page/prd]
+login-page/prd
+    ↓ children: [login-page/design]
+login-page/design
+    ↓ children: [login-page/implement]
+login-page/implement
+    ↓ children: [login-page/verify]
+login-page/verify
     ↓ children: []  ← 완료
 ```
 
@@ -59,8 +59,8 @@ verify/login-page
 |------|------|------|
 | `id` | string | 태스크 식별자 (slug) |
 | `steps` | string[] | 남은 스텝들 (현재 스텝 포함) |
-| `parent` | string \| null | 이전 문서 경로 (`step/id` 형식) |
-| `children` | string[] | 다음 문서 경로들 (`step/id` 형식) |
+| `parent` | string \| null | 이전 문서 경로 (`id/step` 형식) |
+| `children` | string[] | 다음 문서 경로들 (`id/step` 형식) |
 
 ### steps 배열
 
@@ -84,10 +84,10 @@ steps: [design, implement, verify]
 
 ```yaml
 # 일반 진행 (1:1)
-children: ["design/login-page"]
+children: ["login-page/design"]
 
 # Fork (1:N)
-children: ["spec/login-ui", "spec/login-api"]
+children: ["login-ui/prd", "login-api/prd"]
 
 # 완료 (종료)
 children: []
@@ -210,34 +210,34 @@ steps: [clarify, reproduce, root-cause, fix, verify]
 `children`이 여러 개면 fork입니다.
 
 ```yaml
-# clarify/login-system.md
+# login-system/clarify.md
 ---
 id: login-system
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: ["spec/login-ui", "spec/login-api"]  # fork!
+children: ["login-ui/prd", "login-api/prd"]  # fork!
 ---
 ```
 
 각 child는 독립적인 태스크가 되어 자체 `steps`를 가집니다:
 
 ```yaml
-# spec/login-ui.md
+# login-ui/prd.md
 ---
 id: login-ui
-steps: [spec, visual-design, implement, verify]
-parent: "clarify/login-system"
-children: ["visual-design/login-ui"]
+steps: [prd, visual-design, implement, verify]
+parent: "login-system/clarify"
+children: ["login-ui/visual-design"]
 ---
 ```
 
 ```yaml
-# spec/login-api.md
+# login-api/prd.md
 ---
 id: login-api
-steps: [spec, design, implement, verify]
-parent: "clarify/login-system"
-children: ["design/login-api"]
+steps: [prd, design, implement, verify]
+parent: "login-system/clarify"
+children: ["login-api/design"]
 ---
 ```
 
@@ -359,10 +359,10 @@ sub-tasks:
       instruction.md
     ...
   specs/              # 생성된 문서들
-    clarify/
-      login-page.md
-    spec/
-      login-page.md
+    login-page/
+      clarify.md
+      prd.md
+      design.md
     ...
 ```
 

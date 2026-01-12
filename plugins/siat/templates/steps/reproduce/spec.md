@@ -1,8 +1,8 @@
 ---
 id: "{task-id}"
 steps: [reproduce, root-cause, fix, verify]
-parent: "clarify/{task-id}"
-children: ["root-cause/{task-id}"]
+parent: "{task-id}/clarify"
+children: ["{task-id}/root-cause"]
 ---
 
 # Reproduce: {버그 제목}

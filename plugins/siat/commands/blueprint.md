@@ -141,26 +141,36 @@ rm -rf ".claude/siat/steps"
 스텝 목록:
 - clarify, reproduce, root-cause, prd, design, visual-design, implement, fix, verify
 
-**한 번의 Bash로 모든 스텝 다운로드** (권한 허용 1회):
+**한 번의 Bash로 모든 스텝 병렬 다운로드** (권한 허용 1회):
 
 ```bash
 REPO="eatnug/blacksmith"
 BASE_PATH="plugins/siat/templates"
 STEPS="clarify reproduce root-cause prd design visual-design implement fix verify"
 
+# 디렉토리 먼저 생성
 for step in $STEPS; do
   mkdir -p ".claude/siat/steps/${step}"
-
-  # instruction.md
-  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/instruction.md" \
-    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/instruction.md"
-
-  # spec.md
-  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/spec.md" \
-    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/spec.md"
-
-  echo "✓ ${step}"
 done
+
+# 병렬 다운로드 함수
+download_step() {
+  local step=$1
+  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/instruction.md" \
+    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/instruction.md" &
+  gh api "repos/${REPO}/contents/${BASE_PATH}/steps/${step}/spec.md" \
+    --jq '.content' | base64 -d > ".claude/siat/steps/${step}/spec.md" &
+}
+
+# 모든 스텝 병렬 시작
+for step in $STEPS; do
+  download_step "$step"
+done
+
+# 모든 다운로드 완료 대기
+wait
+
+echo "✓ 9개 스텝 다운로드 완료"
 ```
 
 **CRITICAL**: 각 스텝은 반드시 `instruction.md`와 `spec.md` 두 파일을 모두 가져야 합니다.

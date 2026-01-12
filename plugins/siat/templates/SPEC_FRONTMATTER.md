@@ -6,8 +6,8 @@
 ---
 id: string          # 태스크 식별자 (slug)
 steps: string[]     # 남은 스텝들 (현재 포함)
-parent: string|null # 이전 단계 문서 경로 (step/id 형식)
-children: string[]  # 다음 단계 문서 경로들 (step/id 형식)
+parent: string|null # 이전 단계 문서 경로 (id/step 형식)
+children: string[]  # 다음 단계 문서 경로들 (id/step 형식)
 
 # Learning (post-step에서 추가됨)
 learn: string[]     # 코드베이스에서 배운 것들
@@ -31,13 +31,13 @@ reflected: boolean  # 시스템에 반영됐는지
 
 ### parent
 - 이전 단계의 문서 경로
-- 형식: `{step}/{id}`
+- 형식: `{id}/{step}`
 - 루트 문서는 `null`
-- 예: `clarify/login-page`, `spec/login-ui`
+- 예: `login-page/clarify`, `login-ui/prd`
 
 ### children
 - 다음 단계의 문서 경로들
-- 형식: `{step}/{id}`
+- 형식: `{id}/{step}`
 - 빈 배열 = 마지막 스텝
 - 1개 = 일반 진행
 - 2개 이상 = fork
@@ -64,12 +64,12 @@ reflected: boolean  # 시스템에 반영됐는지
 ### 일반 진행 (fork 없음)
 
 ```yaml
-# specs/clarify/login-page.md
+# specs/login-page/clarify.md
 ---
 id: login-page
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [spec/login-page]
+children: [login-page/prd]
 
 learn:
   - "기존 인증은 NextAuth 사용"
@@ -81,12 +81,12 @@ reflected: false
 ```
 
 ```yaml
-# specs/spec/login-page.md
+# specs/login-page/prd.md
 ---
 id: login-page
-steps: [spec, design, implement, verify]
-parent: clarify/login-page
-children: [design/login-page]
+steps: [prd, design, implement, verify]
+parent: login-page/clarify
+children: [login-page/design]
 
 learn:
   - "세션 기반 인증 사용 중"
@@ -96,77 +96,77 @@ reflected: false
 ```
 
 ```yaml
-# specs/design/login-page.md
+# specs/login-page/design.md
 ---
 id: login-page
 steps: [design, implement, verify]
-parent: spec/login-page
-children: [implement/login-page]
+parent: login-page/prd
+children: [login-page/implement]
 ---
 ```
 
 ### 스텝 스킵
 
 ```yaml
-# specs/clarify/login-ui.md
+# specs/login-ui/clarify.md
 ---
 id: login-ui
-steps: [clarify, spec, visual-design, implement, verify]  # design 스킵
+steps: [clarify, prd, visual-design, implement, verify]  # design 스킵
 parent: null
-children: [spec/login-ui]
+children: [login-ui/prd]
 ---
 ```
 
 ```yaml
-# specs/spec/login-ui.md
+# specs/login-ui/prd.md
 ---
 id: login-ui
-steps: [spec, visual-design, implement, verify]
-parent: clarify/login-ui
-children: [visual-design/login-ui]  # design 건너뛰고 visual-design
+steps: [prd, visual-design, implement, verify]
+parent: login-ui/clarify
+children: [login-ui/visual-design]  # design 건너뛰고 visual-design
 ---
 ```
 
 ### Fork
 
 ```yaml
-# specs/clarify/login-system.md
+# specs/login-system/clarify.md
 ---
 id: login-system
-steps: [clarify, spec, design, implement, verify]
+steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [spec/login-ui, spec/login-api]  # 두 개로 분기
+children: [login-ui/prd, login-api/prd]  # 두 개로 분기
 ---
 ```
 
 ```yaml
-# specs/spec/login-ui.md
+# specs/login-ui/prd.md
 ---
 id: login-ui
-steps: [spec, visual-design, implement, verify]
-parent: clarify/login-system
-children: [visual-design/login-ui]
+steps: [prd, visual-design, implement, verify]
+parent: login-system/clarify
+children: [login-ui/visual-design]
 ---
 ```
 
 ```yaml
-# specs/spec/login-api.md
+# specs/login-api/prd.md
 ---
 id: login-api
-steps: [spec, design, implement, verify]
-parent: clarify/login-system
-children: [design/login-api]
+steps: [prd, design, implement, verify]
+parent: login-system/clarify
+children: [login-api/design]
 ---
 ```
 
 ### 마지막 스텝
 
 ```yaml
-# specs/verify/login-page.md
+# specs/login-page/verify.md
 ---
 id: login-page
 steps: [verify]
-parent: implement/login-page
+parent: login-page/implement
 children: []  # 끝
 ---
 ```

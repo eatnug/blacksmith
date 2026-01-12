@@ -2,7 +2,7 @@
 id: "{task-slug}"
 steps: [clarify, prd, design, implement, verify]
 parent: null
-children: [prd/{task-slug}]
+children: [{task-slug}/prd]
 ---
 
 # Clarify: {태스크 제목}

@@ -121,8 +121,17 @@ fi
 TASK_ID=$(get_frontmatter_field "$SPEC_PATH" "id")
 STEP=$(basename "$SPEC_PATH" .md)
 PARENT=$(get_frontmatter_field "$SPEC_PATH" "parent")
-mapfile -t STEPS < <(get_frontmatter_array "$SPEC_PATH" "steps")
-mapfile -t CHILDREN < <(get_frontmatter_array "$SPEC_PATH" "children")
+
+# macOS bash 3.x compatible array reading (no mapfile)
+STEPS=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && STEPS+=("$line")
+done < <(get_frontmatter_array "$SPEC_PATH" "steps")
+
+CHILDREN=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && CHILDREN+=("$line")
+done < <(get_frontmatter_array "$SPEC_PATH" "children")
 
 # Required fields validation
 if [[ -z "$TASK_ID" ]]; then

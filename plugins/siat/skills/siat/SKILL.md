@@ -75,6 +75,9 @@ hooks:
   pre-step: []
   post-step: []
   post-workflow: []
+
+remote:
+  slack_webhook_url: ""  # Slack Incoming Webhook URL
 ```
 
 **허용되는 키만 사용하세요.** 임의의 키 추가 금지.

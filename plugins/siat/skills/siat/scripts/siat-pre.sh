@@ -187,35 +187,39 @@ else
         # Get parent from latest spec path
         PARENT="${TASK_ID}/$(basename "$LATEST_SPEC" .md)"
 
-        # Get children from latest spec
-        CHILDREN=()
-        while IFS= read -r line; do
-            [[ -n "$line" ]] && CHILDREN+=("$line")
-        done < <(get_frontmatter_array "$LATEST_SPEC" "children")
-
-        if [[ ${#CHILDREN[@]} -gt 0 ]]; then
-            # Has children - next step is first child's step
-            NEXT_CHILD="${CHILDREN[0]}"
-            STEP="${NEXT_CHILD##*/}"  # Extract step from "task_id/step"
-        else
-            # No children - check remaining steps
-            SPEC_STEPS=()
-            while IFS= read -r line; do
-                [[ -n "$line" ]] && SPEC_STEPS+=("$line")
-            done < <(get_frontmatter_array "$LATEST_SPEC" "steps")
-            if [[ ${#SPEC_STEPS[@]} -gt 1 ]]; then
-                STEP="${SPEC_STEPS[1]}"  # Next step after current
-            else
-                STEP=""  # Task complete
-            fi
-        fi
-
         # Calculate completed steps
         for f in "${TASK_DIR}"/*.md; do
             if [[ -f "$f" ]]; then
                 COMPLETED_STEPS+=("$(basename "$f" .md)")
             fi
         done
+
+        # Only auto-determine STEP if not explicitly provided
+        if [[ -z "$STEP" ]]; then
+            # Get children from latest spec
+            CHILDREN=()
+            while IFS= read -r line; do
+                [[ -n "$line" ]] && CHILDREN+=("$line")
+            done < <(get_frontmatter_array "$LATEST_SPEC" "children")
+
+            if [[ ${#CHILDREN[@]} -gt 0 ]]; then
+                # Has children - next step is first child's step
+                # Format: "step/task_id" (e.g., "prd/computer-use-jake")
+                NEXT_CHILD="${CHILDREN[0]}"
+                STEP="${NEXT_CHILD%%/*}"  # Extract step from "step/task_id"
+            else
+                # No children - check remaining steps
+                SPEC_STEPS=()
+                while IFS= read -r line; do
+                    [[ -n "$line" ]] && SPEC_STEPS+=("$line")
+                done < <(get_frontmatter_array "$LATEST_SPEC" "steps")
+                if [[ ${#SPEC_STEPS[@]} -gt 1 ]]; then
+                    STEP="${SPEC_STEPS[1]}"  # Next step after current
+                else
+                    STEP=""  # Task complete
+                fi
+            fi
+        fi
     fi
 
     # Calculate remaining steps

@@ -3,9 +3,17 @@
 # Deterministic PR creation with spec-based content
 #
 # Usage: siat-gh-pr.sh <task_dir> [--dry-run]
+# Environment:
+#   SIAT_REMOTE=true (required to enable this script)
 # Output: JSON with PR URL or dry-run preview
 
 set -e
+
+# Skip if not in remote mode
+if [[ "${SIAT_REMOTE}" != "true" ]]; then
+    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled"}' | jq .
+    exit 0
+fi
 
 TASK_DIR="$1"
 DRY_RUN=false
@@ -213,8 +221,12 @@ PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
 
 # Update implement spec with PR link
 if [[ -n "$PR_NUMBER" ]]; then
-    sed -i '' "s/^---$/---\ngithub_pr: \"${PR_URL}\"/" "$IMPLEMENT_SPEC" 2>/dev/null || \
-    sed -i "s/^---$/---\ngithub_pr: \"${PR_URL}\"/" "$IMPLEMENT_SPEC"
+    # Add github_pr field after first --- in frontmatter
+    # Use awk for cross-platform compatibility
+    awk -v pr_url="$PR_URL" '
+        NR==1 && /^---$/ { print; print "github_pr: \"" pr_url "\""; next }
+        { print }
+    ' "$IMPLEMENT_SPEC" > "${IMPLEMENT_SPEC}.tmp" && mv "${IMPLEMENT_SPEC}.tmp" "$IMPLEMENT_SPEC"
 fi
 
 jq -n \

@@ -1,11 +1,39 @@
 ---
 description: Execute Siat workflow - document-driven step execution
-argument-hint: "[task-id] [request]"
+argument-hint: "[--remote] [task-id] [request]"
 ---
 
 # Siat Workflow Orchestrator
 
 문서 기반 워크플로우 실행기. 스크립트로 메타데이터를 자동 생성하고, AI는 본문 작성에만 집중합니다.
+
+---
+
+## Flags
+
+### `--remote` (리모트 모드)
+
+GitHub Issue/PR 기반 비동기 승인 워크플로우 활성화:
+
+```
+/siat:do --remote 로그인 페이지 만들어줘
+```
+
+**동작:**
+1. 각 스텝 완료 후 → GitHub Issue/PR 생성
+2. Slack 알림 전송 (SIAT_SLACK_WEBHOOK_URL 필요)
+3. GitHub 코멘트 polling → `/approve`, `/feedback:`, `/reject` 대기
+
+**환경변수 설정:**
+리모트 모드 활성화를 위해 스크립트 실행 전에 환경변수를 설정:
+```bash
+export SIAT_REMOTE=true
+```
+
+**필수 설정:**
+```bash
+export SIAT_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+```
 
 ---
 
@@ -27,6 +55,27 @@ siat 스킬의 `scripts/` 폴더에 있음:
 ---
 
 ## Execution Flow
+
+### 0. Parse Flags (플래그 파싱)
+
+**Arguments에서 플래그 추출:**
+
+```
+$ARGUMENTS = "--remote 로그인 페이지 만들어줘"
+```
+
+1. `--remote` 플래그 감지 시:
+   ```bash
+   export SIAT_REMOTE=true
+   ```
+2. 플래그 제거 후 나머지를 request로 사용:
+   ```
+   request = "로그인 페이지 만들어줘"
+   ```
+
+**Important:** `--remote` 플래그가 있으면 **반드시** Bash로 환경변수를 export한 후 스크립트를 실행해야 합니다.
+
+---
 
 ### 1. Pre-Step: 메타데이터 자동 생성
 
@@ -313,6 +362,37 @@ $ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-post.sh ".claude/siat/specs/로
    /siat:do login-ui
    /siat:do login-api
 ```
+
+### 리모트 모드 (--remote)
+
+```
+> /siat:do --remote 로그인 페이지 만들어줘
+
+# 0. 플래그 파싱 및 환경변수 설정
+$ export SIAT_REMOTE=true
+
+# 1. siat-pre.sh 실행
+$ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "clarify" "로그인 페이지 만들어줘"
+
+# 2. AI가 clarify 실행, spec 작성
+
+# 3. siat-post.sh 실행 (검증)
+
+# 4. post-step hooks 실행:
+#    - siat-gh-issue.sh → GitHub Issue 생성
+#    - siat-slack-notify.sh → Slack 알림 전송
+#    - siat-wait-approval.sh → GitHub 코멘트 대기 (polling)
+
+⏳ Waiting for approval on issue #42...
+
+# 5. 유저가 GitHub에서 /approve 코멘트
+# 6. 다음 스텝 자동 진행
+```
+
+**GitHub 코멘트 명령어:**
+- `/approve` - 다음 스텝으로 진행
+- `/feedback: 메시지` - 피드백과 함께 재시도
+- `/reject` - 워크플로우 중단
 
 ---
 

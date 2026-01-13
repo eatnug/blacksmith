@@ -30,11 +30,11 @@ hooks:
 presets:
   remote:
     gateway:
-      questions: script:gh-poll.sh {spec_path} --type=questions
-      feedback: script:gh-poll.sh {spec_path} --type=feedback
+      questions: local
+      feedback: script:siat-wait-approval.sh {spec_path}
     hooks:
       on_processed:
-        - script:gh-issue.sh {spec_path}
-        - script:slack-notify.sh {spec_path}
+        - script:siat-gh-issue.sh {spec_path}
+        - script:siat-slack-notify.sh {spec_path}
       on_approve:
-        - script:gh-issue-close.sh {spec_path}
+        - script:siat-gh-issue-close.sh {spec_path}

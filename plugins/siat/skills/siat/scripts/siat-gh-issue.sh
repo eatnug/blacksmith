@@ -2,12 +2,9 @@
 # siat-gh-issue.sh - Create GitHub issue from spec document
 # Deterministic issue creation with consistent formatting
 #
-# Usage: siat-gh-issue.sh <spec_path> [--remote] [--dry-run]
+# Usage: siat-gh-issue.sh <spec_path> [--dry-run]
 # Flags:
-#   --remote   Enable remote mode (alternative to SIAT_REMOTE=true env)
 #   --dry-run  Preview without creating issue
-# Environment:
-#   SIAT_REMOTE=true (alternative to --remote flag)
 # Output: JSON with issue URL or dry-run preview
 
 set -e
@@ -15,21 +12,14 @@ set -e
 # Parse arguments
 SPEC_PATH=""
 DRY_RUN=false
-REMOTE_FLAG=false
 
 for arg in "$@"; do
     case $arg in
-        --remote) REMOTE_FLAG=true ;;
         --dry-run) DRY_RUN=true ;;
+        --remote) ;; # deprecated, ignored
         *) [[ -z "$SPEC_PATH" ]] && SPEC_PATH="$arg" ;;
     esac
 done
-
-# Skip if not in remote mode (check both flag and env)
-if [[ "${SIAT_REMOTE}" != "true" && "$REMOTE_FLAG" != "true" ]]; then
-    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled (use --remote flag or SIAT_REMOTE=true)"}' | jq .
-    exit 0
-fi
 
 # ============================================================================
 # Helper Functions

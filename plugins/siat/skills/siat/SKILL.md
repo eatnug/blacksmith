@@ -18,7 +18,7 @@ description: |
 | `siat-post.sh` | 스텝 완료 후 검증 및 다음 스텝 계산 |
 | `siat-gh-issue.sh` | spec에서 GitHub 이슈 생성 |
 | `siat-gh-pr.sh` | implement에서 GitHub PR 생성 |
-| `siat-migrate.sh` | v5.x → v6.x 마이그레이션 |
+| `siat-migrate.sh` | v6.x → v7.x 마이그레이션 |
 
 ### 사용 방법
 
@@ -34,7 +34,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-post.sh "{spec_path}" .claude/sia
 
 스크립트는 JSON을 출력하며, AI가 직접 계산하지 않아도 되는 메타데이터를 제공합니다.
 
-### 마이그레이션 (v5.x → v6.x)
+### 마이그레이션
 
 ```bash
 # 미리보기
@@ -44,9 +44,10 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.ym
 ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.yml
 ```
 
-마이그레이션 내용:
-- 기존 `.claude/siat/scripts/` 폴더 삭제 (스킬에 포함됨)
-- 스텝 단위 → 피쳐 단위 문서 구조 변환
+스크립트가 config 형식을 자동 감지하여 변환:
+- hooks.pre-step → hooks.pre_step (underscore)
+- execution.mode → gateway (local/remote)
+- 기존 문서의 frontmatter는 변경 안 함 (호환됨)
 
 ---
 
@@ -54,30 +55,45 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-migrate.sh .claude/siat/config.ym
 
 `.claude/siat/` 하위 파일을 수정할 때 반드시 이 규칙을 따르세요.
 
-### config.yml
+### config.yml (v7.0)
 
 ```yaml
-workflow:
-  name: "워크플로우 이름"
-  description: "설명"
-
+# 워크플로우 스텝 정의
 steps:
-  - step1
-  - step2
+  - specify
+  - plan
+  - implement
+  - review
 
+# 출력 경로
 output:
-  path: ".claude/siat/specs"  # 결과물 저장 경로
+  path: ".claude/siat/specs"
 
-execution:
-  mode: "manual"  # "manual" | "auto"
+# Gateway: 사용자 상호작용 채널
+gateway:
+  questions: local    # local or script:xxx.sh
+  feedback: local     # local or script:xxx.sh
 
+# Hooks: 워크플로우 확장 포인트
 hooks:
-  pre-step: []
-  post-step: []
-  post-workflow: []
+  pre_step: []
+  on_processed: []
+  on_approve: []
+  on_reject: []
+  on_revise: []
+  on_complete: []
 
-remote:
-  slack_webhook_url: ""  # Slack Incoming Webhook URL
+# Presets: 자주 쓰는 설정 묶음
+presets:
+  remote:
+    gateway:
+      questions: script:gh-poll.sh {spec_path} --type=questions
+      feedback: script:gh-poll.sh {spec_path} --type=feedback
+    hooks:
+      on_processed:
+        - script:gh-issue.sh {spec_path}
+      on_approve:
+        - script:gh-issue-close.sh {spec_path}
 ```
 
 **허용되는 키만 사용하세요.** 임의의 키 추가 금지.
@@ -86,8 +102,8 @@ remote:
 
 ```
 .claude/siat/steps/{step-name}/
-├── instruction.md   # 스텝 실행 지침
-└── spec.md          # 결과물 템플릿
+├── instruction.md     # 스텝 실행 지침
+└── spec_template.md   # 결과물 템플릿
 ```
 
 ### Spec 문서 저장 구조 (CRITICAL)
@@ -101,37 +117,32 @@ remote:
 ```
 .claude/siat/specs/
 └── login-page/
-    ├── clarify.md
-    ├── prd.md
-    ├── design.md
-    └── implement.md
+    ├── specify.md
+    ├── plan.md
+    ├── implement.md
+    └── review.md
 ```
 
 **절대 스텝 단위로 저장하지 않음:**
 ```
 # 잘못된 구조 - 사용 금지
 .claude/siat/specs/
-├── clarify/
+├── specify/
 │   └── login-page.md
-├── prd/
+├── plan/
 │   └── login-page.md
 ```
 
-### Spec Frontmatter 형식
+### Spec Frontmatter 형식 (v7.0)
 
 ```yaml
 ---
-id: {task_id}                    # 태스크 식별자
-steps: [current, next1, next2]   # 남은 스텝들
-parent: {step/task_id} | null    # 이전 문서
-children: [{step/task_id}, ...]  # 다음 문서들
-
-# 선택적
-open_questions:
-  - question: "질문"
-    context: "왜 필요한지"
-    resolved: false
-    answer: null
+id: "task-id"
+step: "specify"
+prev: null                      # null or "{task-id}/{prev-step}"
+next: "{task-id}/plan"          # null or "{task-id}/{next-step}"
+status: "pending_feedback"      # pending_feedback | approved | revised | rejected
+open_questions: []
 ---
 ```
 
@@ -162,15 +173,16 @@ open_questions:
 ### /siat:do [task-id] [request]
 
 1. **Pre-step 스크립트 실행** → 메타데이터 자동 생성
-2. **AI 스텝 실행** → 본문 작성, children/open_questions 결정
+2. **AI 스텝 실행** → 본문 작성, open_questions 결정
 3. **Post-step 스크립트 실행** → 검증, 다음 스텝 계산
-4. **Hooks 실행** → 설정된 pre/post hooks
+4. **On Processed Hooks 실행** → GitHub 이슈, Slack 알림 등
+5. **User Feedback** → Approve, Revise, Reject
+6. **Response Hooks 실행** → on_approve, on_revise, on_reject
 
 ### AI가 하는 일
 
 - instruction.md 따라 분석/작업
-- spec.md 템플릿의 본문 작성
-- children 배열 결정 (fork 여부)
+- spec_template.md 템플릿의 본문 작성
 - open_questions 작성
 
 ### AI가 하지 않는 일 (스크립트 처리)
@@ -178,8 +190,7 @@ open_questions:
 - ❌ task_id 생성 (slugify)
 - ❌ 디렉토리 생성
 - ❌ 경로 계산
-- ❌ parent 추적
-- ❌ steps 배열 계산
+- ❌ prev/next 계산
 
 ---
 

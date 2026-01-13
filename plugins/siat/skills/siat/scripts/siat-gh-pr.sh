@@ -1,23 +1,35 @@
 #!/bin/bash
-# siat-gh-pr.sh - Create GitHub PR from implement step
+# siat-gh-pr.sh - Create GitHub PR from completed workflow
 # Deterministic PR creation with spec-based content
 #
-# Usage: siat-gh-pr.sh <task_dir> [--dry-run]
+# Usage: siat-gh-pr.sh <task_dir> [--dry-run] [--force]
+# Flags:
+#   --dry-run  Preview without creating PR
+#   --force    Skip SIAT_REMOTE check (for manual invocation)
 # Environment:
-#   SIAT_REMOTE=true (required to enable this script)
+#   SIAT_REMOTE=true (auto-enabled in remote mode)
 # Output: JSON with PR URL or dry-run preview
 
 set -e
 
-# Skip if not in remote mode
-if [[ "${SIAT_REMOTE}" != "true" ]]; then
-    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled"}' | jq .
+# Parse arguments
+TASK_DIR=""
+DRY_RUN=false
+FORCE=false
+
+for arg in "$@"; do
+    case $arg in
+        --dry-run) DRY_RUN=true ;;
+        --force) FORCE=true ;;
+        *) [[ -z "$TASK_DIR" ]] && TASK_DIR="$arg" ;;
+    esac
+done
+
+# Skip if not in remote mode (unless forced)
+if [[ "${SIAT_REMOTE}" != "true" && "$FORCE" != "true" ]]; then
+    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled. Use --force to override."}' | jq .
     exit 0
 fi
-
-TASK_DIR="$1"
-DRY_RUN=false
-[[ "$2" == "--dry-run" ]] && DRY_RUN=true
 
 # ============================================================================
 # Helper Functions
@@ -210,12 +222,25 @@ Co-Authored-By: Claude <noreply@anthropic.com>" || true
 # Push
 git push -u origin "$BRANCH_NAME" 2>/dev/null || git push origin "$BRANCH_NAME"
 
-# Create PR
+# Create labels if needed
+gh label create "siat" --color "0052CC" --force 2>/dev/null || true
+gh label create "$TASK_ID" --color "FBCA04" --force 2>/dev/null || true
+
+# Create PR with labels
 PR_URL=$(gh pr create \
     --title "$TITLE" \
     --body "$BODY" \
     --base "$BASE_BRANCH" \
-    2>&1)
+    --label "siat" \
+    --label "$TASK_ID" \
+    2>&1) || {
+    # Retry without labels if something fails
+    PR_URL=$(gh pr create \
+        --title "$TITLE" \
+        --body "$BODY" \
+        --base "$BASE_BRANCH" \
+        2>&1)
+}
 
 PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
 

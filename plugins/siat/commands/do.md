@@ -299,6 +299,27 @@ AskUserQuestion:
 **gateway.feedback == "script:xxx.sh":**
 스크립트 실행하여 GitHub 코멘트 등에서 피드백 polling
 
+**Remote 모드 승인 대기 (CRITICAL):**
+
+승인 대기는 반드시 **백그라운드**로 실행:
+
+1. Bash 도구의 `run_in_background: true` 파라미터 사용
+2. 사용자에게 "승인 대기 중입니다. GitHub 이슈에서 응답해주세요." 안내
+3. 완료 시 `task-notification` 자동 수신
+4. TaskOutput으로 출력 파일 읽기
+5. JSON 결과의 `action` 필드에 따라 분기:
+   - `approve`: 다음 스텝 진행
+   - `feedback`: 스펙 수정 후 재시도
+   - `reject`: 워크플로우 중단
+
+```bash
+# 백그라운드 실행 예시 (Bash tool)
+{
+  "command": "siat-wait-approval.sh {spec_path}",
+  "run_in_background": true
+}
+```
+
 ---
 
 ### 10. Handle Feedback Response
@@ -318,6 +339,12 @@ AskUserQuestion:
 2. spec의 `status`를 `revised`로 업데이트
 3. `config.hooks.on_revise` 실행
 4. Step 4로 돌아가 스텝 재실행
+5. **(Remote 모드)** 수정 완료 후 이슈 업데이트:
+   ```bash
+   siat-gh-issue.sh {spec_path} --update
+   ```
+   - 이슈 바디가 새 스펙 내용으로 업데이트됨
+   - "Updated" 코멘트가 추가됨
 
 **Reject:**
 1. spec의 `status`를 `rejected`로 업데이트
@@ -328,9 +355,17 @@ AskUserQuestion:
 
 ### 11. Workflow Complete
 
-마지막 스텝 완료 후:
+마지막 스텝(review) 완료 후:
+
 1. `config.hooks.on_complete` 실행
-2. 완료 메시지 출력
+2. **(Remote 모드)** PR 자동 생성:
+   ```bash
+   SIAT_REMOTE=true siat-gh-pr.sh {task_dir}
+   ```
+   - 변경사항 커밋 및 푸시
+   - PR 생성 (siat, task_id 라벨 포함)
+   - implement.md에 github_pr 필드 추가
+3. 완료 메시지 출력
 
 ```
 🎉 워크플로우 완료: {task_id}
@@ -340,6 +375,8 @@ AskUserQuestion:
   - plan.md
   - implement.md
   - review.md
+
+🔗 PR: {pr_url} (remote 모드)
 ```
 
 ---

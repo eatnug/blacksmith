@@ -2,22 +2,34 @@
 # siat-gh-issue.sh - Create GitHub issue from spec document
 # Deterministic issue creation with consistent formatting
 #
-# Usage: siat-gh-issue.sh <spec_path> [--dry-run]
+# Usage: siat-gh-issue.sh <spec_path> [--remote] [--dry-run]
+# Flags:
+#   --remote   Enable remote mode (alternative to SIAT_REMOTE=true env)
+#   --dry-run  Preview without creating issue
 # Environment:
-#   SIAT_REMOTE=true (required to enable this script)
+#   SIAT_REMOTE=true (alternative to --remote flag)
 # Output: JSON with issue URL or dry-run preview
 
 set -e
 
-# Skip if not in remote mode
-if [[ "${SIAT_REMOTE}" != "true" ]]; then
-    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled"}' | jq .
+# Parse arguments
+SPEC_PATH=""
+DRY_RUN=false
+REMOTE_FLAG=false
+
+for arg in "$@"; do
+    case $arg in
+        --remote) REMOTE_FLAG=true ;;
+        --dry-run) DRY_RUN=true ;;
+        *) [[ -z "$SPEC_PATH" ]] && SPEC_PATH="$arg" ;;
+    esac
+done
+
+# Skip if not in remote mode (check both flag and env)
+if [[ "${SIAT_REMOTE}" != "true" && "$REMOTE_FLAG" != "true" ]]; then
+    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled (use --remote flag or SIAT_REMOTE=true)"}' | jq .
     exit 0
 fi
-
-SPEC_PATH="$1"
-DRY_RUN=false
-[[ "$2" == "--dry-run" ]] && DRY_RUN=true
 
 # ============================================================================
 # Helper Functions
@@ -123,12 +135,20 @@ if [[ "$DRY_RUN" == "true" ]]; then
     exit 0
 fi
 
-# Create issue
+# Create issue (try with label first, fallback without if label doesn't exist)
 ISSUE_URL=$(gh issue create \
     --title "$TITLE" \
     --body "$BODY" \
     ${LABELS:+--label "$LABELS"} \
-    2>&1)
+    2>&1) || {
+    # Retry without label if label not found
+    if [[ "$ISSUE_URL" == *"not found"* ]]; then
+        ISSUE_URL=$(gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            2>&1)
+    fi
+}
 
 ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -o '[0-9]*$')
 

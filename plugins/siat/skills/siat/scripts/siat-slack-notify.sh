@@ -2,30 +2,36 @@
 # siat-slack-notify.sh - Send Slack notification for siat workflow events
 # Sends a message to Slack webhook when approval is needed
 #
-# Usage: siat-slack-notify.sh <spec_path> [--config=path]
+# Usage: siat-slack-notify.sh <spec_path> [--remote] [--config=path]
+# Flags:
+#   --remote       Enable remote mode (alternative to SIAT_REMOTE=true env)
+#   --config=path  Path to config file
 # Config: remote.slack_webhook_url in config.yml
 # Environment:
-#   SIAT_REMOTE=true (required to enable this script)
+#   SIAT_REMOTE=true (alternative to --remote flag)
 #   SIAT_SLACK_WEBHOOK_URL (fallback if not in config)
 # Output: JSON with notification result
 
 set -e
 
-# Skip if not in remote mode
-if [[ "${SIAT_REMOTE}" != "true" ]]; then
-    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled"}' | jq .
-    exit 0
-fi
-
-SPEC_PATH="$1"
+# Parse arguments
+SPEC_PATH=""
 CONFIG_PATH=".claude/siat/config.yml"
+REMOTE_FLAG=false
 
-# Parse optional arguments
-for arg in "${@:2}"; do
+for arg in "$@"; do
     case $arg in
+        --remote) REMOTE_FLAG=true ;;
         --config=*) CONFIG_PATH="${arg#*=}" ;;
+        *) [[ -z "$SPEC_PATH" ]] && SPEC_PATH="$arg" ;;
     esac
 done
+
+# Skip if not in remote mode (check both flag and env)
+if [[ "${SIAT_REMOTE}" != "true" && "$REMOTE_FLAG" != "true" ]]; then
+    echo '{"skipped": true, "reason": "SIAT_REMOTE not enabled (use --remote flag or SIAT_REMOTE=true)"}' | jq .
+    exit 0
+fi
 
 # Read webhook URL from config.yml (remote.slack_webhook_url)
 get_config_value() {

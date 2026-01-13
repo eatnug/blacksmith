@@ -1,349 +1,194 @@
 # Siat
 
-**S**pec-driven **I**terative **A**gent **T**asks - 문서 기반 워크플로우 프레임워크
-
-## 개요
-
-Siat는 SDD(Spec-Driven Development) 프레임워크입니다. 각 스텝이 spec 문서를 생성하고, 그 문서가 다음 스텝을 결정합니다.
-
-```
-[clarify] → spec문서 → [spec] → spec문서 → [design] → spec문서 → [implement] → ...
-```
-
-## 핵심 개념
-
-### 1. Spec 문서
-
-모든 스텝의 결과물은 **spec 문서**입니다. 각 문서는 frontmatter로 워크플로우를 제어합니다.
-
-```yaml
----
-id: "login-page"                    # 태스크 식별자
-steps: [spec, design, implement, verify]  # 남은 스텝들
-parent: "login-page/clarify"        # 이전 문서
-children: ["login-page/design"]     # 다음 문서(들)
----
-
-# 문서 본문
-...
-```
-
-### 2. 문서 체인
-
-문서들이 `parent`/`children`으로 연결되어 워크플로우를 형성합니다.
-
-```
-login-page/clarify
-    ↓ children: [login-page/prd]
-login-page/prd
-    ↓ children: [login-page/design]
-login-page/design
-    ↓ children: [login-page/implement]
-login-page/implement
-    ↓ children: [login-page/verify]
-login-page/verify
-    ↓ children: []  ← 완료
-```
-
-### 3. Orchestrator
-
-`/siat:do` 명령이 문서 체인을 따라 스텝을 실행합니다.
+**S**pec-driven **I**terative **A**gent **T**asks - Universal SDD 구현체
 
 ---
 
-## Frontmatter 스펙
+## Universal SDD (Spec-Driven Development)
 
-### 필드
+### 철학
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `id` | string | 태스크 식별자 (slug) |
-| `steps` | string[] | 남은 스텝들 (현재 스텝 포함) |
-| `parent` | string \| null | 이전 문서 경로 (`id/step` 형식) |
-| `children` | string[] | 다음 문서 경로들 (`id/step` 형식) |
+- **Spec is Source of Truth**: 스펙이 개발을 이끈다
+- **Human-in-the-loop**: AI가 작업하고, 사람이 검토
+- **Linear Flow**: 분기 없이 순차 진행
 
-### steps 배열
+### Core Entities
 
-`steps[0]`은 항상 현재 스텝입니다. 배열은 "left steps" (남은 스텝들)을 의미합니다.
+| Entity | 설명 |
+|--------|------|
+| **Step** | 작업 단위. instruction + spec_template |
+| **Spec** | Step의 결과물. 마크다운 파일 |
+| **Feedback** | approve / revise / reject |
+
+### Spec 구조
 
 ```yaml
-# clarify 단계 문서
-steps: [clarify, spec, design, implement, verify]
+---
+id: "{task-id}"
+step: "{step-name}"
+prev: "{task-id}/{prev-step}"   # nullable (첫 스텝)
+next: "{task-id}/{next-step}"   # nullable (마지막 스텝)
+status: "pending_feedback"
+open_questions: []
+---
 
-# spec 단계 문서 (clarify 완료 후)
-steps: [spec, design, implement, verify]
+# {Step}: {Task Title}
 
-# design 단계 문서
-steps: [design, implement, verify]
+{content}
 ```
 
-### parent / children
+### 진행 방식
 
-- `parent`: 이 문서를 생성한 이전 스텝의 문서
-- `children`: 이 문서가 생성할 다음 스텝의 문서(들)
+```
+1. 사용자 요청
+2. 첫 번째 스텝 실행
+   ├─ AI가 instruction 읽고 작업
+   ├─ spec_template 형식으로 spec 생성
+   ├─ open_questions 있으면 해결
+   ├─ 사용자 feedback 수집
+   └─ approve → 다음 스텝 / revise → 재작업 / reject → 종료
+3. 마지막 스텝까지 반복
+4. 완료
+```
 
-```yaml
-# 일반 진행 (1:1)
-children: ["login-page/design"]
+### 파일 구조 (참고)
 
-# Fork (1:N)
-children: ["login-ui/prd", "login-api/prd"]
-
-# 완료 (종료)
-children: []
+```
+{config-dir}/
+├── config.{ext}
+├── steps/
+│   └── {step}/
+│       ├── instruction.{ext}
+│       └── spec_template.{ext}
+└── specs/
+    └── {task-id}/
+        └── {step}.{ext}
 ```
 
 ---
 
-## Orchestrator 동작
+## Siat: Universal SDD의 구현
 
-### 실행 흐름
+Siat는 Claude Code 환경에서 Universal SDD를 실행하는 플러그인입니다.
 
-```
-/siat:do [task-id | request]
-         ↓
-    ┌─────────────────┐
-    │ 1. Config 읽기  │
-    └────────┬────────┘
-             ↓
-    ┌─────────────────┐
-    │ 2. 상태 파악    │ ← 기존 문서 있나? children은?
-    └────────┬────────┘
-             ↓
-    ┌─────────────────┐
-    │ 3. 스텝 실행    │ ← instruction.md 따라 실행
-    └────────┬────────┘
-             ↓
-    ┌─────────────────┐
-    │ 4. 문서 생성    │ ← frontmatter + 결과물
-    └────────┬────────┘
-             ↓
-    ┌─────────────────┐
-    │ 5. 보고 & 안내  │
-    └─────────────────┘
-```
-
-### 1. Config 읽기
-
-`.claude/siat/config.yml`에서 설정 로드:
+### 기본 Workflow
 
 ```yaml
-workflow:
-  steps: [clarify, reproduce, root-cause, spec, design, visual-design, implement, fix, verify]
+steps:
+  - specify    # 유저가 원하는 것 명확히
+  - plan       # 구현/수정 계획
+  - implement  # 실행
+  - review     # 검증
+```
+
+이 workflow는 프로젝트별로 커스터마이징 가능합니다.
+
+### Siat 고유 기능
+
+| 기능 | 설명 |
+|------|------|
+| **Gateway** | questions/feedback I/O 채널 |
+| **Hooks** | 확장 포인트 |
+| **Presets** | 설정 묶음 (--remote 등) |
+
+---
+
+## Config
+
+`.claude/siat/config.yml`:
+
+```yaml
+steps:
+  - specify
+  - plan
+  - implement
+  - review
 
 output:
   path: ".claude/siat/specs"
 
-execution:
-  mode: "manual"  # 또는 "auto"
+gateway:
+  questions: local    # local = AskUserQuestion
+  feedback: local     # script:xxx.sh 로 오버라이드 가능
+
+hooks:
+  pre_step: []
+  on_processed: []
+  on_approve: []
+  on_reject: []
+  on_revise: []
+  on_complete: []
+
+presets:
+  remote:
+    gateway:
+      questions: script:gh-poll.sh {spec_path} --type=questions
+      feedback: script:gh-poll.sh {spec_path} --type=feedback
+    hooks:
+      on_processed:
+        - script:gh-issue.sh {spec_path}
+        - script:slack-notify.sh {spec_path}
+      on_approve:
+        - script:gh-issue-close.sh {spec_path}
 ```
 
-### 2. 상태 파악
+---
 
-**새 태스크:**
-- task-id 없음 → clarify부터 시작
-- `parent: null`, `steps: config.workflow.steps`
+## Gateway
 
-**기존 태스크:**
-- 해당 id의 최신 문서 찾기
-- `children` 확인:
-  - `[]` → 완료
-  - `[x]` → x가 다음 스텝
-  - `[x, y]` → fork
+사용자와 상호작용하는 채널입니다.
 
-### 3. 스텝 실행
+| Gateway | 설명 |
+|---------|------|
+| `questions` | open_questions 해결 방법 |
+| `feedback` | approve/revise/reject 수집 방법 |
 
-1. `.claude/siat/steps/{step}/instruction.md` 읽기
-2. instruction에 따라 실행
-3. 사용자와 상호작용 (manual mode)
+**값:**
+- `local`: 기본값. Claude의 AskUserQuestion 사용
+- `script:path/to/script.sh`: 스크립트로 대체 (remote 등)
 
-### 4. 문서 생성
+---
 
-스텝 완료 시 spec 문서 생성:
+## Hooks
+
+워크플로우 확장 포인트입니다.
+
+| Hook | 시점 | 용도 |
+|------|------|------|
+| `pre_step` | 스텝 실행 전 | 사전 검증 |
+| `on_processed` | AI 작업 완료 후 | 알림, 이슈 생성 |
+| `on_approve` | 승인 시 | 이슈 닫기 |
+| `on_reject` | 거절 시 | 태스크 종료 처리 |
+| `on_revise` | 수정 요청 시 | 재작업 트리거 |
+| `on_complete` | 워크플로우 완료 시 | 최종 알림 |
+
+**형식:**
+```yaml
+hooks:
+  on_processed:
+    - script:path/to/script.sh {spec_path}
+    - script:another.sh {task_id}
+```
+
+---
+
+## Presets
+
+자주 쓰는 설정 묶음입니다.
 
 ```yaml
----
-id: {task-id}
-steps: {현재 steps에서 [0] 제거한 나머지}
-parent: {이전 문서 경로}
-children: {다음 문서 경로들}
----
-
-{스텝 결과물}
+presets:
+  remote:
+    gateway: { ... }
+    hooks: { ... }
 ```
 
-저장: `{output.path}/{task-id}/{step}.md`
-
-### 5. 보고
-
+**사용:**
+```bash
+/do --remote 로그인 기능       # --preset=remote 의 shorthand
+/do --preset=remote 로그인 기능
+/do --preset=slack 로그인 기능  # 커스텀 preset
 ```
-✅ spec 완료: login-page
-
-📄 생성: .claude/siat/specs/login-page/spec.md
-
-📍 다음: design
-
-▶️ 계속: /siat:do login-page
-```
-
----
-
-## 워크플로우 패턴
-
-### 태스크별 steps
-
-각 태스크는 자신만의 `steps`를 가집니다. 시스템 스텝의 서브셋이며, clarify 단계에서 태스크 유형에 맞게 결정됩니다.
-
-```yaml
-# feature 워크플로우
-steps: [clarify, spec, design, implement, verify]
-
-# UI 워크플로우
-steps: [clarify, spec, visual-design, implement, verify]
-
-# bugfix 워크플로우
-steps: [clarify, reproduce, root-cause, fix, verify]
-```
-
-### Fork (태스크 분리)
-
-`children`이 여러 개면 fork입니다.
-
-```yaml
-# login-system/clarify.md
----
-id: login-system
-steps: [clarify, prd, design, implement, verify]
-parent: null
-children: ["login-ui/prd", "login-api/prd"]  # fork!
----
-```
-
-각 child는 독립적인 태스크가 되어 자체 `steps`를 가집니다:
-
-```yaml
-# login-ui/prd.md
----
-id: login-ui
-steps: [prd, visual-design, implement, verify]
-parent: "login-system/clarify"
-children: ["login-ui/visual-design"]
----
-```
-
-```yaml
-# login-api/prd.md
----
-id: login-api
-steps: [prd, design, implement, verify]
-parent: "login-system/clarify"
-children: ["login-api/design"]
----
-```
-
----
-
-## 스텝 정의
-
-각 스텝은 `steps/{step}/instruction.md`에 정의됩니다.
-
-### 구조
-
-```
-steps/
-  clarify/
-    instruction.md
-  spec/
-    instruction.md
-  design/
-    instruction.md
-  ...
-```
-
-### instruction.md 형식
-
-```yaml
----
-name: spec
-description: 요구사항 정의
-role: "Requirements engineer"
-
-inputs:
-  - clarify 단계의 결과
-
-outputs:
-  - 요구사항 문서
-
-sub-tasks:
-  - id: decompose
-    instruction: "요청을 요구사항으로 분해"
-  - id: validate
-    instruction: "요구사항 검증"
----
-
-# Spec (요구사항 명세)
-
-당신은 **{{role}}**입니다.
-
-[상세 지침...]
-
-## Output Format
-
-[문서 형식 정의...]
-```
-
-### 기본 제공 스텝
-
-| 스텝 | 용도 |
-|------|------|
-| clarify | 요청 분석, 워크플로우 결정 |
-| reproduce | 버그 재현 (bugfix) |
-| root-cause | 원인 분석 (bugfix) |
-| spec | 요구사항 정의 |
-| design | 기술 설계 |
-| visual-design | UI/UX 시각 설계 |
-| implement | 코드 구현 |
-| fix | 버그 수정 (bugfix) |
-| verify | 검증 |
-
----
-
-## 사용법
-
-### 새 태스크 시작
-
-```
-/siat:do 로그인 페이지 만들어줘
-```
-
-### 태스크 이어서
-
-```
-/siat:do login-page
-```
-
-### 특정 스텝부터
-
-```
-/siat:do implement login-page
-```
-
----
-
-## 커스터마이징
-
-### 새 스텝 추가
-
-1. `steps/{step-name}/instruction.md` 생성
-2. `config.yml`의 `workflow.steps`에 추가
-
-### 기존 스텝 수정
-
-`steps/{step}/instruction.md` 직접 수정
-
-### 워크플로우 변경
-
-`config.yml`에서 `workflow.steps` 순서 변경
 
 ---
 
@@ -351,42 +196,112 @@ sub-tasks:
 
 ```
 .claude/siat/
-  config.yml          # 설정
-  steps/              # 스텝 정의
-    clarify/
-      instruction.md
-    spec/
-      instruction.md
-    ...
-  specs/              # 생성된 문서들
-    login-page/
-      clarify.md
-      prd.md
-      design.md
-    ...
+├── config.yml              # 설정
+├── steps/                  # 스텝 정의
+│   ├── specify/
+│   │   ├── instruction.md
+│   │   └── spec_template.md
+│   ├── plan/
+│   │   ├── instruction.md
+│   │   └── spec_template.md
+│   └── ...
+└── specs/                  # 생성된 문서들
+    └── {task-id}/
+        ├── specify.md
+        ├── plan.md
+        ├── implement.md
+        └── review.md
 ```
 
 ---
 
-## 설치
+## 사용법
+
+### 설치
 
 ```bash
-# 마켓플레이스 등록 (최초 1회)
+# 마켓플레이스 등록
 /plugin marketplace add eatnug/blacksmith
 
 # siat 설치
 /plugin install siat@blacksmith
 ```
 
-## 빠른 시작
+### 초기화
 
 ```bash
-# 1. 프로젝트에 siat 초기화
 /siat:init
-
-# 2. 워크플로우 시작
-/siat:do 로그인 기능 만들어줘
-
-# 3. 다음 스텝 진행
-/siat:do login-feature
 ```
+
+### 워크플로우 실행
+
+```bash
+# 새 태스크 시작
+/do 로그인 기능 만들어줘
+
+# 태스크 이어서
+/do login-feature
+
+# remote 모드
+/do --remote 로그인 기능
+```
+
+### 상태 확인
+
+```bash
+/status
+```
+
+---
+
+## Spec Frontmatter
+
+```yaml
+---
+id: "login-feature"
+step: "plan"
+prev: "login-feature/specify"
+next: "login-feature/implement"
+status: "pending_feedback"      # pending | pending_feedback | approved | rejected
+open_questions:
+  - id: "q1"
+    question: "어떤 인증 방식을 사용할까요?"
+    answer: null
+    resolved: false
+---
+```
+
+### Status
+
+| Status | 설명 |
+|--------|------|
+| `pending` | 작업 중 |
+| `pending_feedback` | 피드백 대기 |
+| `approved` | 승인됨 |
+| `rejected` | 거절됨 |
+
+---
+
+## 커스터마이징
+
+### 스텝 추가
+
+1. `steps/{step-name}/instruction.md` 생성
+2. `steps/{step-name}/spec_template.md` 생성
+3. `config.yml`의 `steps`에 추가
+
+### 스텝 수정
+
+`steps/{step}/instruction.md` 직접 수정
+
+### Workflow 변경
+
+`config.yml`에서 `steps` 순서/구성 변경
+
+### Hook 추가
+
+`config.yml`의 `hooks`에 스크립트 추가
+
+### Preset 추가
+
+`config.yml`의 `presets`에 새 preset 정의

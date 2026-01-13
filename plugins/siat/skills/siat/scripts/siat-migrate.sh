@@ -1,8 +1,9 @@
 #!/bin/bash
-# siat-migrate.sh - Migrate from v5.x to v6.x
+# siat-migrate.sh - Migrate from v6.x to v7.x
 # Handles:
-#   1. Remove old scripts folder (now included in skill)
-#   2. Convert step-centric to feature-centric structure
+#   1. Config format: hooks.pre-step → hooks.pre_step, execution.mode → gateway
+#   2. Old steps: clarify, prd, design... → specify, plan, implement, review
+#   3. Frontmatter: children, parent, steps → prev, next, status
 #
 # Usage: siat-migrate.sh <config_path> [--dry-run]
 # Output: JSON with migration results
@@ -61,7 +62,7 @@ OUTPUT_PATH=$(parse_yaml_nested "$CONFIG_PATH" "output" "path")
 OUTPUT_PATH="${OUTPUT_PATH:-.claude/siat/specs}"
 SIAT_DIR=$(dirname "$CONFIG_PATH")
 
-# Read steps into array (macOS compatible)
+# Read steps into array
 STEPS=()
 while IFS= read -r line; do
     [[ -n "$line" ]] && STEPS+=("$line")
@@ -69,10 +70,63 @@ done < <(get_steps_array "$CONFIG_PATH")
 
 ACTIONS=""
 MIGRATED_FILES=""
-REMOVED_DIRS=""
+WARNINGS=""
 
 # ============================================================================
-# 1. Remove old scripts folder
+# 1. Detect v6.x config format
+# ============================================================================
+
+CONFIG_MIGRATED=false
+
+# Check for old hook format (pre-step, post-step with hyphens)
+if grep -q "pre-step:" "$CONFIG_PATH" 2>/dev/null || \
+   grep -q "post-step:" "$CONFIG_PATH" 2>/dev/null || \
+   grep -q "post-workflow:" "$CONFIG_PATH" 2>/dev/null; then
+    ACTIONS="${ACTIONS}convert_config_hooks\n"
+    CONFIG_MIGRATED=true
+fi
+
+# Check for old execution.mode format
+if grep -q "execution:" "$CONFIG_PATH" 2>/dev/null; then
+    ACTIONS="${ACTIONS}convert_execution_to_gateway\n"
+    CONFIG_MIGRATED=true
+fi
+
+# Check for workflow.name format (v5/v6)
+if grep -q "workflow:" "$CONFIG_PATH" 2>/dev/null; then
+    ACTIONS="${ACTIONS}remove_workflow_section\n"
+    CONFIG_MIGRATED=true
+fi
+
+# Check for old steps
+OLD_STEPS_DETECTED=false
+for old_step in "clarify" "reproduce" "root-cause" "prd" "design" "visual-design" "fix" "verify"; do
+    if grep -q "- $old_step" "$CONFIG_PATH" 2>/dev/null; then
+        OLD_STEPS_DETECTED=true
+        break
+    fi
+done
+
+if [[ "$OLD_STEPS_DETECTED" == "true" ]]; then
+    ACTIONS="${ACTIONS}convert_old_steps\n"
+    CONFIG_MIGRATED=true
+fi
+
+# ============================================================================
+# 2. Count existing spec files (for info only - NOT modified)
+# ============================================================================
+
+EXISTING_SPECS_COUNT=0
+
+if [[ -d "$OUTPUT_PATH" ]]; then
+    EXISTING_SPECS_COUNT=$(find "$OUTPUT_PATH" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+fi
+
+# NOTE: 기존 specs 문서의 frontmatter는 절대 건드리지 않음
+# 구조만 맞으면 ({output.path}/{task-id}/{step}.md) 호환됨
+
+# ============================================================================
+# 3. Remove old scripts folder (v5.x cleanup)
 # ============================================================================
 
 OLD_SCRIPTS_DIR="${SIAT_DIR}/scripts"
@@ -82,189 +136,36 @@ if [[ -d "$OLD_SCRIPTS_DIR" ]]; then
     if [[ "$DRY_RUN" == "false" ]]; then
         rm -rf "$OLD_SCRIPTS_DIR"
     fi
-    REMOVED_DIRS="${REMOVED_DIRS}${OLD_SCRIPTS_DIR}\n"
-fi
-
-# ============================================================================
-# 2. Detect and convert step-centric to feature-centric
-# ============================================================================
-
-STEP_CENTRIC_DETECTED=false
-
-for step in "${STEPS[@]}"; do
-    STEP_DIR="${OUTPUT_PATH}/${step}"
-    if [[ -d "$STEP_DIR" ]]; then
-        if ls "${STEP_DIR}"/*.md 1>/dev/null 2>&1; then
-            STEP_CENTRIC_DETECTED=true
-            break
-        fi
-    fi
-done
-
-if [[ "$STEP_CENTRIC_DETECTED" == "true" ]]; then
-    ACTIONS="${ACTIONS}convert_to_feature_centric\n"
-
-    # Collect all task IDs from step folders (using temp file for macOS compat)
-    TASK_IDS_FILE=$(mktemp)
-    trap "rm -f $TASK_IDS_FILE" EXIT
-
-    for step in "${STEPS[@]}"; do
-        STEP_DIR="${OUTPUT_PATH}/${step}"
-        if [[ -d "$STEP_DIR" ]]; then
-            for file in "${STEP_DIR}"/*.md; do
-                if [[ -f "$file" ]]; then
-                    basename "$file" .md >> "$TASK_IDS_FILE"
-                fi
-            done
-        fi
-    done
-
-    # Get unique task IDs
-    UNIQUE_TASK_IDS=$(sort -u "$TASK_IDS_FILE")
-
-    # Migrate each task
-    while IFS= read -r task_id; do
-        [[ -z "$task_id" ]] && continue
-        TASK_DIR="${OUTPUT_PATH}/${task_id}"
-
-        if [[ "$DRY_RUN" == "false" ]]; then
-            mkdir -p "$TASK_DIR"
-        fi
-
-        for step in "${STEPS[@]}"; do
-            OLD_FILE="${OUTPUT_PATH}/${step}/${task_id}.md"
-            NEW_FILE="${TASK_DIR}/${step}.md"
-
-            if [[ -f "$OLD_FILE" ]]; then
-                if [[ "$DRY_RUN" == "false" ]]; then
-                    mv "$OLD_FILE" "$NEW_FILE"
-                fi
-                MIGRATED_FILES="${MIGRATED_FILES}${step}/${task_id}.md -> ${task_id}/${step}.md\n"
-            fi
-        done
-    done <<< "$UNIQUE_TASK_IDS"
-
-    # Remove empty step directories
-    for step in "${STEPS[@]}"; do
-        STEP_DIR="${OUTPUT_PATH}/${step}"
-        if [[ -d "$STEP_DIR" ]]; then
-            if [[ "$DRY_RUN" == "false" ]]; then
-                rmdir "$STEP_DIR" 2>/dev/null || true
-            fi
-            REMOVED_DIRS="${REMOVED_DIRS}${STEP_DIR}\n"
-        fi
-    done
-fi
-
-# ============================================================================
-# 3. Convert link format in frontmatter (step/task_id → task_id/step)
-# ============================================================================
-
-LINK_CONVERSIONS=""
-
-# Function to convert a link from step/id to id/step format
-convert_link() {
-    local link="$1"
-    # Check if it's in old format (contains / and step is before /)
-    if [[ "$link" =~ ^([^/]+)/([^/]+)$ ]]; then
-        local first="${BASH_REMATCH[1]}"
-        local second="${BASH_REMATCH[2]}"
-        # Check if first part is a known step name
-        for step in "${STEPS[@]}"; do
-            if [[ "$first" == "$step" ]]; then
-                # Convert: step/task_id → task_id/step
-                echo "${second}/${first}"
-                return
-            fi
-        done
-    fi
-    # Not old format, return as-is
-    echo "$link"
-}
-
-# Find all spec files and update frontmatter
-if [[ -d "$OUTPUT_PATH" ]]; then
-    while IFS= read -r -d '' spec_file; do
-        [[ -z "$spec_file" ]] && continue
-
-        NEEDS_UPDATE=false
-
-        # Check if file has old format links
-        if grep -q 'parent:.*"[a-z-]\+/[a-z0-9-]\+"' "$spec_file" 2>/dev/null; then
-            # Check if any step name appears before /
-            for step in "${STEPS[@]}"; do
-                if grep -q "parent:.*\"${step}/" "$spec_file" 2>/dev/null; then
-                    NEEDS_UPDATE=true
-                    break
-                fi
-            done
-        fi
-
-        if grep -q 'children:' "$spec_file" 2>/dev/null; then
-            for step in "${STEPS[@]}"; do
-                if grep -q "\"${step}/" "$spec_file" 2>/dev/null; then
-                    NEEDS_UPDATE=true
-                    break
-                fi
-            done
-        fi
-
-        if [[ "$NEEDS_UPDATE" == "true" ]]; then
-            if [[ "$DRY_RUN" == "false" ]]; then
-                # Create temp file for sed output
-                TMP_FILE=$(mktemp)
-
-                # Convert parent and children links
-                # Pattern: "step/task_id" → "task_id/step"
-                cp "$spec_file" "$TMP_FILE"
-
-                for step in "${STEPS[@]}"; do
-                    # Convert parent: "step/xxx" → parent: "xxx/step"
-                    sed -i.bak "s|parent: \"${step}/\([^\"]*\)\"|parent: \"\1/${step}\"|g" "$TMP_FILE"
-                    # Convert children array items
-                    sed -i.bak "s|\"${step}/\([^\"]*\)\"|\"\\1/${step}\"|g" "$TMP_FILE"
-                done
-
-                mv "$TMP_FILE" "$spec_file"
-                rm -f "${TMP_FILE}.bak" "$spec_file.bak" 2>/dev/null || true
-            fi
-            LINK_CONVERSIONS="${LINK_CONVERSIONS}${spec_file}\n"
-        fi
-    done < <(find "$OUTPUT_PATH" -name "*.md" -type f -print0 2>/dev/null)
 fi
 
 # ============================================================================
 # Output
 # ============================================================================
 
-# Convert newline-separated strings to JSON arrays
 ACTIONS_JSON=$(echo -e "$ACTIONS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
-MIGRATED_JSON=$(echo -e "$MIGRATED_FILES" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
-REMOVED_JSON=$(echo -e "$REMOVED_DIRS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
-LINKS_JSON=$(echo -e "$LINK_CONVERSIONS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
-
-# Add action if link conversions happened
-if [[ -n "$LINK_CONVERSIONS" ]]; then
-    ACTIONS_JSON=$(echo "$ACTIONS_JSON" | jq '. + ["convert_link_format"]')
-fi
+WARNINGS_JSON=$(echo -e "$WARNINGS" | grep -v '^$' | jq -R . | jq -s . 2>/dev/null || echo '[]')
 
 jq -n \
     --argjson dry_run "$DRY_RUN" \
     --argjson actions "$ACTIONS_JSON" \
-    --argjson migrated "$MIGRATED_JSON" \
-    --argjson removed "$REMOVED_JSON" \
-    --argjson links "$LINKS_JSON" \
+    --argjson warnings "$WARNINGS_JSON" \
+    --argjson config_migrated "$CONFIG_MIGRATED" \
+    --argjson old_steps "$OLD_STEPS_DETECTED" \
+    --argjson existing_specs "$EXISTING_SPECS_COUNT" \
     --arg output_path "$OUTPUT_PATH" \
     '{
         dry_run: $dry_run,
+        version: "v6.x → v7.0",
         actions: $actions,
-        migrated_files: $migrated,
-        removed_dirs: $removed,
-        link_format_converted: $links,
+        warnings: $warnings,
         output_path: $output_path,
+        details: {
+            config_needs_migration: $config_migrated,
+            old_steps_detected: $old_steps,
+            existing_specs_count: $existing_specs
+        },
         summary: {
-            files_migrated: ($migrated | length),
-            dirs_removed: ($removed | length),
-            links_converted: ($links | length)
-        }
+            actions_needed: ($actions | length)
+        },
+        note: "기존 specs 문서는 변경하지 않음. 구조만 맞으면 호환됨."
     }'

@@ -64,19 +64,18 @@ options:
 
 ---
 
-### 3. 글로벌 Hooks 설정
+### 3. Gateway 설정
 
-Use AskUserQuestion (multiSelect: true):
+Use AskUserQuestion:
 
 ```yaml
-question: "어떤 글로벌 훅을 사용할까요?"
-header: "Hooks"
-multiSelect: true
+question: "유저 상호작용 방식을 선택하세요"
+header: "Gateway"
 options:
-  - label: "siat-learner (Recommended)"
-    description: "매 스텝 후 learn/feedback 수집"
-  - label: "없음"
-    description: "훅 없이 시작"
+  - label: "Local (Recommended)"
+    description: "CLI에서 직접 질문/피드백"
+  - label: "Remote (GitHub)"
+    description: "GitHub Issue 코멘트로 질문/피드백"
 ```
 
 ---
@@ -90,24 +89,53 @@ options:
 **Create `.claude/siat/`:**
 
 1. **config.yml** - 사용자 선택 반영
-```yaml
-workflow:
-  name: "siat"
-  description: "SDD 프레임워크 - 문서 기반 워크플로우"
-  steps: []  # blueprint로 채워짐
 
+**Local 선택 시:**
+```yaml
+# Siat Configuration
+# Universal SDD 구현체
+
+# 워크플로우 스텝 정의
+steps:
+  - specify    # 유저가 원하는 것 명확히
+  - plan       # 구현/수정 계획
+  - implement  # 실행
+  - review     # 검증
+
+# 출력 경로
 output:
   path: "{선택된 경로}"
 
-execution:
-  mode: "manual"
+# Gateway: 사용자 상호작용 채널
+gateway:
+  questions: local
+  feedback: local
 
+# Hooks: 워크플로우 확장 포인트
 hooks:
-  pre-step: []
-  post-step:
-    - agent:siat-learner  # 선택된 경우
-  post-workflow: []
+  pre_step: []
+  on_processed: []
+  on_approve: []
+  on_reject: []
+  on_revise: []
+  on_complete: []
+
+# Presets: 자주 쓰는 설정 묶음
+presets:
+  remote:
+    gateway:
+      questions: script:gh-poll.sh {spec_path} --type=questions
+      feedback: script:gh-poll.sh {spec_path} --type=feedback
+    hooks:
+      on_processed:
+        - script:gh-issue.sh {spec_path}
+        - script:slack-notify.sh {spec_path}
+      on_approve:
+        - script:gh-issue-close.sh {spec_path}
 ```
+
+**Remote 선택 시:**
+gateway 섹션을 remote preset 값으로 설정하고, hooks에 기본 remote hooks 추가.
 
 2. **steps/** - 빈 디렉토리 (mkdir)
 

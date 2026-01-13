@@ -1,9 +1,12 @@
 #!/bin/bash
-# siat-post.sh - Post-step hook for siat workflow
+# siat-post.sh - Post-step hook for siat workflow (v7.0)
 # Validates output and computes next step deterministically
 #
 # Usage: siat-post.sh <spec_path> <config_path>
 # Output: JSON with validation results and next step info
+#
+# Frontmatter format (v7.0):
+#   id, step, prev, next, status, open_questions
 
 set -e
 
@@ -41,22 +44,6 @@ get_frontmatter_field() {
     ' "$file"
 }
 
-get_frontmatter_array() {
-    local file="$1"
-    local field="$2"
-
-    awk -v field="$field" '
-        /^---$/ { if (in_fm) exit; in_fm=1; next }
-        in_fm && $0 ~ "^"field":" { in_field=1; next }
-        in_fm && in_field && /^[a-z]/ { exit }
-        in_fm && in_field && /^[[:space:]]+-/ {
-            gsub(/^[[:space:]]+-[[:space:]]*/, "")
-            gsub(/"/, "")
-            print
-        }
-    ' "$file"
-}
-
 get_open_questions() {
     local file="$1"
 
@@ -71,6 +58,7 @@ get_open_questions() {
             gsub(/"/, "")
             current_q = $0
             resolved = "false"
+            context = ""
         }
         in_fm && in_oq && /^[[:space:]]+resolved:/ {
             gsub(/.*resolved:[[:space:]]*/, "")
@@ -104,6 +92,35 @@ get_body_length() {
     ' "$file"
 }
 
+get_steps_array() {
+    local file="$1"
+    awk '
+        /^steps:/ || /^[[:space:]]+steps:/ { in_steps=1; next }
+        in_steps && /^[a-z]/ { exit }
+        in_steps && /^[[:space:]]+-/ {
+            gsub(/^[[:space:]]+-[[:space:]]*/, "")
+            gsub(/#.*/, "")
+            gsub(/[[:space:]]+$/, "")
+            if (length($0) > 0) print
+        }
+    ' "$file"
+}
+
+get_step_index() {
+    local target="$1"
+    shift
+    local steps=("$@")
+    local i=0
+    for s in "${steps[@]}"; do
+        if [[ "$s" == "$target" ]]; then
+            echo "$i"
+            return
+        fi
+        ((i++))
+    done
+    echo "-1"
+}
+
 # ============================================================================
 # Validation
 # ============================================================================
@@ -117,29 +134,25 @@ if [[ ! -f "$SPEC_PATH" ]]; then
     exit 1
 fi
 
-# Parse spec info
+# Parse spec info (v7.0 frontmatter)
 TASK_ID=$(get_frontmatter_field "$SPEC_PATH" "id")
-STEP=$(basename "$SPEC_PATH" .md)
-PARENT=$(get_frontmatter_field "$SPEC_PATH" "parent")
+STEP=$(get_frontmatter_field "$SPEC_PATH" "step")
+PREV=$(get_frontmatter_field "$SPEC_PATH" "prev")
+NEXT=$(get_frontmatter_field "$SPEC_PATH" "next")
+STATUS=$(get_frontmatter_field "$SPEC_PATH" "status")
 
-# macOS bash 3.x compatible array reading (no mapfile)
-STEPS=()
-while IFS= read -r line; do
-    [[ -n "$line" ]] && STEPS+=("$line")
-done < <(get_frontmatter_array "$SPEC_PATH" "steps")
-
-CHILDREN=()
-while IFS= read -r line; do
-    [[ -n "$line" ]] && CHILDREN+=("$line")
-done < <(get_frontmatter_array "$SPEC_PATH" "children")
+# If step not in frontmatter, get from filename
+if [[ -z "$STEP" ]]; then
+    STEP=$(basename "$SPEC_PATH" .md)
+fi
 
 # Required fields validation
 if [[ -z "$TASK_ID" ]]; then
     ERRORS+=("missing required field: id")
 fi
 
-if [[ ${#STEPS[@]} -eq 0 ]]; then
-    ERRORS+=("missing required field: steps")
+if [[ -z "$STEP" ]]; then
+    ERRORS+=("missing required field: step")
 fi
 
 # Body content validation
@@ -167,30 +180,34 @@ if [[ ${#UNRESOLVED_QUESTIONS[@]} -gt 0 ]]; then
 fi
 
 # ============================================================================
-# Next Step Calculation
+# Next Step Calculation (v7.0 - linear flow, no fork)
 # ============================================================================
 
 NEXT_STEP=""
 NEXT_TASK_ID=""
 IS_COMPLETE=false
-IS_FORK=false
 
-if [[ ${#CHILDREN[@]} -eq 0 ]]; then
-    # No children defined - check remaining steps
-    if [[ ${#STEPS[@]} -gt 1 ]]; then
-        NEXT_STEP="${STEPS[1]}"
-        NEXT_TASK_ID="$TASK_ID"
-    else
-        IS_COMPLETE=true
-    fi
-elif [[ ${#CHILDREN[@]} -eq 1 ]]; then
-    # Single child
-    CHILD="${CHILDREN[0]}"
-    NEXT_STEP="${CHILD%%/*}"
-    NEXT_TASK_ID="${CHILD#*/}"
+# Get steps from config
+ALL_STEPS=()
+if [[ -f "$CONFIG_PATH" ]]; then
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && ALL_STEPS+=("$line")
+    done < <(get_steps_array "$CONFIG_PATH")
+fi
+
+# Default steps if not found
+if [[ ${#ALL_STEPS[@]} -eq 0 ]]; then
+    ALL_STEPS=("specify" "plan" "implement" "review")
+fi
+
+# Calculate next step based on current position
+STEP_IDX=$(get_step_index "$STEP" "${ALL_STEPS[@]}")
+
+if [[ "$STEP_IDX" -ge 0 ]] && [[ "$STEP_IDX" -lt $((${#ALL_STEPS[@]}-1)) ]]; then
+    NEXT_STEP="${ALL_STEPS[$((STEP_IDX+1))]}"
+    NEXT_TASK_ID="$TASK_ID"
 else
-    # Multiple children = fork
-    IS_FORK=true
+    IS_COMPLETE=true
 fi
 
 # ============================================================================
@@ -199,8 +216,7 @@ fi
 
 ERRORS_JSON=$(printf '%s\n' "${ERRORS[@]}" | jq -R . | jq -s .)
 WARNINGS_JSON=$(printf '%s\n' "${WARNINGS[@]}" | jq -R . | jq -s .)
-CHILDREN_JSON=$(printf '%s\n' "${CHILDREN[@]}" | jq -R . | jq -s .)
-STEPS_JSON=$(printf '%s\n' "${STEPS[@]}" | jq -R . | jq -s .)
+STEPS_JSON=$(printf '%s\n' "${ALL_STEPS[@]}" | jq -R . | jq -s .)
 QUESTIONS_JSON=$(printf '%s\n' "${UNRESOLVED_QUESTIONS[@]}" | jq -s '.')
 
 VALID=true
@@ -215,13 +231,13 @@ jq -n \
     --arg task_id "$TASK_ID" \
     --arg step "$STEP" \
     --arg spec_path "$SPEC_PATH" \
-    --arg parent "$PARENT" \
+    --arg prev "$PREV" \
+    --arg next "$NEXT" \
+    --arg status "$STATUS" \
     --argjson steps "$STEPS_JSON" \
-    --argjson children "$CHILDREN_JSON" \
     --arg next_step "$NEXT_STEP" \
     --arg next_task_id "$NEXT_TASK_ID" \
     --argjson is_complete "$IS_COMPLETE" \
-    --argjson is_fork "$IS_FORK" \
     --argjson unresolved_questions "$QUESTIONS_JSON" \
     '{
         valid: $valid,
@@ -231,16 +247,15 @@ jq -n \
             task_id: $task_id,
             step: $step,
             path: $spec_path,
-            parent: (if $parent == "" then null else $parent end),
-            steps: $steps,
-            children: $children
+            prev: (if $prev == "" then null else $prev end),
+            next: (if $next == "" then null else $next end),
+            status: $status,
+            steps: $steps
         },
         next: {
             step: (if $next_step == "" then null else $next_step end),
             task_id: (if $next_task_id == "" then null else $next_task_id end),
-            is_complete: $is_complete,
-            is_fork: $is_fork,
-            fork_children: (if $is_fork then $children else [] end)
+            is_complete: $is_complete
         },
         unresolved_questions: $unresolved_questions
     }'

@@ -22,14 +22,9 @@ GitHub Issue/PR 기반 비동기 승인 워크플로우 활성화:
 ```
 
 **동작:**
-1. config의 `presets.remote` 설정을 활성화
-2. `gateway.questions`/`feedback`이 `script:` 방식으로 전환
-3. `on_processed`, `on_approve` hooks 실행
-
-**환경변수 설정:**
-```bash
-export SIAT_REMOTE=true
-```
+1. `siat-pre.sh`가 플래그를 파싱하고 `presets.remote` 설정 병합
+2. 스크립트 출력의 `gateway`, `hooks` 설정을 그대로 사용
+3. AI는 환경변수 설정이나 플래그 파싱 불필요
 
 **필수 설정 (Slack 알림 사용 시):**
 ```bash
@@ -110,36 +105,14 @@ open_questions: []
 
 ## Execution Flow
 
-### 0. Parse Flags & Load Config
+### 1. Pre-Step: 메타데이터 및 설정 자동 생성
 
-**플래그 파싱:**
-```
-$ARGUMENTS = "--remote 로그인 페이지 만들어줘"
-```
-
-1. `--remote` 플래그 감지 시:
-   ```bash
-   export SIAT_REMOTE=true
-   ```
-2. 플래그 제거 후 나머지를 request로 사용
-
-**Config 로드:**
-Read `.claude/siat/config.yml`:
-- `steps` 배열 파악
-- `output.path` 확인
-- `gateway` 설정 확인
-- `--remote`면 `presets.remote` 병합
-
----
-
-### 1. Pre-Step: 메타데이터 자동 생성
-
-**스크립트 실행:**
+**스크립트 실행 (플래그 포함하여 전달):**
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{$ARGUMENTS}"
 ```
 
-**스크립트 출력 (JSON):**
+**스크립트 출력 (JSON) - v7.1:**
 ```json
 {
   "task_id": "login-page",
@@ -149,7 +122,17 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{
   "prev": null,
   "next": "login-page/plan",
   "is_new_task": true,
+  "remote_mode": true,
   "steps": ["specify", "plan", "implement", "review"],
+  "gateway": {
+    "mode": "remote",
+    "questions": "script:gh-poll.sh {spec_path} --type=questions",
+    "feedback": "script:gh-poll.sh {spec_path} --type=feedback"
+  },
+  "hooks": {
+    "on_processed": ["script:gh-issue.sh {spec_path}"],
+    "on_approve": ["script:gh-issue-close.sh {spec_path}"]
+  },
   "frontmatter": {
     "id": "login-page",
     "step": "specify",
@@ -161,9 +144,11 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{
 }
 ```
 
-**이 정보를 변수로 저장하고 사용:**
-- `task_id`, `step`, `spec_path` 등은 스크립트가 결정
-- AI가 직접 계산하지 않음
+**핵심: 스크립트가 모든 것을 결정**
+- `--remote`/`--local` 플래그 파싱
+- `presets.remote` 병합
+- `gateway`, `hooks` 설정 제공
+- AI는 스크립트 출력을 그대로 사용
 
 ---
 
@@ -430,10 +415,15 @@ $ siat-post.sh ".claude/siat/specs/로그인-페이지-만들어줘/specify.md"
 ```
 > /siat:do --remote 로그인 페이지 만들어줘
 
-# 0. 환경변수 설정 & preset 병합
-$ export SIAT_REMOTE=true
+# 1. siat-pre.sh가 --remote 파싱, gateway/hooks 설정 반환
+$ siat-pre.sh config.yml "specify" "--remote 로그인 페이지 만들어줘"
+{
+  "remote_mode": true,
+  "gateway": { "mode": "remote", "questions": "script:...", "feedback": "script:..." },
+  "hooks": { "on_processed": ["script:gh-issue.sh ..."] }
+}
 
-# 1-6. 동일하게 진행
+# 2-6. 동일하게 진행 (AI는 gateway 설정 따름)
 
 # 7. on_processed hooks 실행
 $ gh-issue.sh {spec_path}  # GitHub 이슈 생성

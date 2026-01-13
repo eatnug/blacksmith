@@ -1,9 +1,10 @@
 #!/bin/bash
-# siat-pre.sh - Pre-step hook for siat workflow (v7.0)
+# siat-pre.sh - Pre-step hook for siat workflow (v7.1)
 # Generates deterministic metadata before AI step execution
+# Parses flags (--remote, --local) and provides gateway/hooks settings
 #
-# Usage: siat-pre.sh <config_path> <step> <request_or_task_id>
-# Output: JSON with all computed metadata
+# Usage: siat-pre.sh <config_path> <step> <request_or_task_id_with_flags>
+# Output: JSON with all computed metadata including gateway settings
 #
 # Frontmatter format (v7.0):
 #   id, step, prev, next, status, open_questions
@@ -12,7 +13,25 @@ set -e
 
 CONFIG_PATH="${1:-.claude/siat/config.yml}"
 STEP="$2"
-INPUT="$3"
+RAW_INPUT="$3"
+
+# ============================================================================
+# Parse Flags from Input
+# ============================================================================
+
+REMOTE_MODE=false
+INPUT="$RAW_INPUT"
+
+# Parse --remote flag
+if [[ "$RAW_INPUT" =~ ^--remote[[:space:]]* ]]; then
+    REMOTE_MODE=true
+    INPUT="${RAW_INPUT#--remote}"
+    INPUT="${INPUT#"${INPUT%%[![:space:]]*}"}"  # trim leading whitespace
+elif [[ "$RAW_INPUT" =~ ^--local[[:space:]]* ]]; then
+    REMOTE_MODE=false
+    INPUT="${RAW_INPUT#--local}"
+    INPUT="${INPUT#"${INPUT%%[![:space:]]*}"}"  # trim leading whitespace
+fi
 
 # ============================================================================
 # Helper Functions
@@ -111,6 +130,25 @@ get_step_index() {
         ((i++))
     done
     echo "-1"
+}
+
+get_hooks_array() {
+    local file="$1"
+    local hook_name="$2"
+    local parent="${3:-hooks}"  # default to top-level hooks, or presets.remote.hooks
+
+    awk -v parent="$parent" -v hook="$hook_name" '
+        BEGIN { in_parent=0; in_hook=0; depth=0 }
+        $0 ~ "^"parent":" || $0 ~ "^[[:space:]]+"parent":" { in_parent=1; next }
+        in_parent && /^[a-z]/ && !/^[[:space:]]/ { in_parent=0 }
+        in_parent && $0 ~ "[[:space:]]+"hook":" { in_hook=1; next }
+        in_hook && /^[[:space:]]+-[[:space:]]*script:/ {
+            gsub(/^[[:space:]]+-[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+        }
+        in_hook && /^[[:space:]]+[a-z_]+:/ && $0 !~ hook { in_hook=0 }
+    ' "$file"
 }
 
 # ============================================================================
@@ -243,11 +281,123 @@ fi
 # Spec file path
 SPEC_PATH="${TASK_DIR}/${STEP}.md"
 
+# ============================================================================
+# Parse Gateway and Hooks (based on mode)
+# ============================================================================
+
+# Default gateway settings
+GATEWAY_QUESTIONS=$(parse_yaml_nested "$CONFIG_PATH" "gateway" "questions")
+GATEWAY_FEEDBACK=$(parse_yaml_nested "$CONFIG_PATH" "gateway" "feedback")
+GATEWAY_QUESTIONS="${GATEWAY_QUESTIONS:-local}"
+GATEWAY_FEEDBACK="${GATEWAY_FEEDBACK:-local}"
+
+# Default hooks (from top-level)
+HOOKS_PRE_STEP=()
+HOOKS_ON_PROCESSED=()
+HOOKS_ON_APPROVE=()
+HOOKS_ON_REJECT=()
+HOOKS_ON_REVISE=()
+HOOKS_ON_COMPLETE=()
+
+# Read hooks from config (simplified - just get on_processed for now)
+while IFS= read -r line; do
+    [[ -n "$line" ]] && HOOKS_ON_PROCESSED+=("$line")
+done < <(get_hooks_array "$CONFIG_PATH" "on_processed")
+
+while IFS= read -r line; do
+    [[ -n "$line" ]] && HOOKS_ON_APPROVE+=("$line")
+done < <(get_hooks_array "$CONFIG_PATH" "on_approve")
+
+# If remote mode, override with presets.remote
+if [[ "$REMOTE_MODE" == "true" ]]; then
+    # Parse presets.remote.gateway
+    REMOTE_QUESTIONS=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /^[[:space:]]{4}[a-z]/ && !/gateway/ { in_remote=0 }
+        in_remote && /gateway:/ { in_gateway=1; next }
+        in_gateway && /questions:/ {
+            gsub(/.*questions:[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    REMOTE_FEEDBACK=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /^[[:space:]]{4}[a-z]/ && !/gateway/ { in_remote=0 }
+        in_remote && /gateway:/ { in_gateway=1; next }
+        in_gateway && /feedback:/ {
+            gsub(/.*feedback:[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    # Override gateway if remote preset has values
+    [[ -n "$REMOTE_QUESTIONS" ]] && GATEWAY_QUESTIONS="$REMOTE_QUESTIONS"
+    [[ -n "$REMOTE_FEEDBACK" ]] && GATEWAY_FEEDBACK="$REMOTE_FEEDBACK"
+
+    # Parse presets.remote.hooks.on_processed
+    REMOTE_ON_PROCESSED=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && REMOTE_ON_PROCESSED+=("$line")
+    done < <(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { exit }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /^[[:space:]]{4}[a-z]/ && !/hooks/ { next }
+        in_remote && /hooks:/ { in_hooks=1; next }
+        in_hooks && /on_processed:/ { in_op=1; next }
+        in_op && /^[[:space:]]+-/ {
+            gsub(/^[[:space:]]+-[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+        }
+        in_op && /^[[:space:]]+[a-z_]+:/ { exit }
+    ' "$CONFIG_PATH")
+
+    # If remote preset has on_processed hooks, use them (override)
+    if [[ ${#REMOTE_ON_PROCESSED[@]} -gt 0 ]]; then
+        HOOKS_ON_PROCESSED=("${REMOTE_ON_PROCESSED[@]}")
+    fi
+
+    # Parse presets.remote.hooks.on_approve
+    REMOTE_ON_APPROVE=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && REMOTE_ON_APPROVE+=("$line")
+    done < <(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { exit }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /^[[:space:]]{4}[a-z]/ && !/hooks/ { next }
+        in_remote && /hooks:/ { in_hooks=1; next }
+        in_hooks && /on_approve:/ { in_oa=1; next }
+        in_oa && /^[[:space:]]+-/ {
+            gsub(/^[[:space:]]+-[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+        }
+        in_oa && /^[[:space:]]+[a-z_]+:/ { exit }
+    ' "$CONFIG_PATH")
+
+    if [[ ${#REMOTE_ON_APPROVE[@]} -gt 0 ]]; then
+        HOOKS_ON_APPROVE=("${REMOTE_ON_APPROVE[@]}")
+    fi
+fi
+
 # Generate JSON arrays
 STEPS_JSON=$(printf '%s\n' "${ALL_STEPS[@]}" | jq -R . | jq -s .)
 COMPLETED_JSON=$(printf '%s\n' "${COMPLETED_STEPS[@]}" | jq -R . | jq -s .)
+HOOKS_ON_PROCESSED_JSON=$(printf '%s\n' "${HOOKS_ON_PROCESSED[@]}" | jq -R . | jq -s .)
+HOOKS_ON_APPROVE_JSON=$(printf '%s\n' "${HOOKS_ON_APPROVE[@]}" | jq -R . | jq -s .)
 
-# Output JSON with v7.0 frontmatter format
+# Output JSON with v7.1 format (includes gateway and hooks)
 jq -n \
     --arg task_id "$TASK_ID" \
     --arg step "$STEP" \
@@ -258,8 +408,13 @@ jq -n \
     --arg next "$NEXT" \
     --arg request "$REQUEST" \
     --argjson is_new "$IS_NEW_TASK" \
+    --argjson remote_mode "$REMOTE_MODE" \
     --argjson steps "$STEPS_JSON" \
     --argjson completed "$COMPLETED_JSON" \
+    --arg gw_questions "$GATEWAY_QUESTIONS" \
+    --arg gw_feedback "$GATEWAY_FEEDBACK" \
+    --argjson hooks_on_processed "$HOOKS_ON_PROCESSED_JSON" \
+    --argjson hooks_on_approve "$HOOKS_ON_APPROVE_JSON" \
     '{
         task_id: $task_id,
         step: $step,
@@ -270,8 +425,18 @@ jq -n \
         next: (if $next == "" then null else $next end),
         request: (if $request == "" then null else $request end),
         is_new_task: $is_new,
+        remote_mode: $remote_mode,
         steps: $steps,
         completed: $completed,
+        gateway: {
+            mode: (if $remote_mode then "remote" else "local" end),
+            questions: $gw_questions,
+            feedback: $gw_feedback
+        },
+        hooks: {
+            on_processed: $hooks_on_processed,
+            on_approve: $hooks_on_approve
+        },
         frontmatter: {
             id: $task_id,
             step: $step,

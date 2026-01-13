@@ -117,6 +117,24 @@ get_frontmatter_field() {
     ' "$file"
 }
 
+is_step_interactive() {
+    local config_path="$1"
+    local step="$2"
+    local config_dir
+    config_dir=$(dirname "$config_path")
+    local instruction_path="${config_dir}/steps/${step}/instruction.md"
+
+    if [[ -f "$instruction_path" ]]; then
+        local interactive_value
+        interactive_value=$(get_frontmatter_field "$instruction_path" "interactive")
+        if [[ "$interactive_value" == "true" ]]; then
+            echo "true"
+            return
+        fi
+    fi
+    echo "false"
+}
+
 get_step_index() {
     local target="$1"
     shift
@@ -282,6 +300,18 @@ fi
 SPEC_PATH="${TASK_DIR}/${STEP}.md"
 
 # ============================================================================
+# Parse Interactive Settings
+# ============================================================================
+
+STEP_INTERACTIVE=$(is_step_interactive "$CONFIG_PATH" "$STEP")
+
+# Default interactive settings
+INTERACTIVE_CHANNEL=$(parse_yaml_nested "$CONFIG_PATH" "interactive" "channel")
+INTERACTIVE_CHANNEL="${INTERACTIVE_CHANNEL:-local}"
+INTERACTIVE_SLACK_BOT_TOKEN=$(parse_yaml_nested "$CONFIG_PATH" "interactive" "slack_bot_token")
+INTERACTIVE_SLACK_CHANNEL_ID=$(parse_yaml_nested "$CONFIG_PATH" "interactive" "slack_channel_id")
+
+# ============================================================================
 # Parse Gateway and Hooks (based on mode)
 # ============================================================================
 
@@ -310,6 +340,57 @@ done < <(get_hooks_array "$CONFIG_PATH" "on_approve")
 
 # If remote mode, override with presets.remote
 if [[ "$REMOTE_MODE" == "true" ]]; then
+    # Parse presets.remote.interactive.channel
+    REMOTE_INTERACTIVE_CHANNEL=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /^[[:space:]]{4}[a-z]/ && !/interactive/ { next }
+        in_remote && /interactive:/ { in_interactive=1; next }
+        in_interactive && /channel:/ {
+            gsub(/.*channel:[[:space:]]*/, "")
+            gsub(/"/, "")
+            print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    [[ -n "$REMOTE_INTERACTIVE_CHANNEL" ]] && INTERACTIVE_CHANNEL="$REMOTE_INTERACTIVE_CHANNEL"
+
+    # Parse presets.remote.interactive.slack_bot_token
+    REMOTE_SLACK_BOT_TOKEN=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /interactive:/ { in_interactive=1; next }
+        in_interactive && /^[[:space:]]+[a-z]/ && !/slack/ { next }
+        in_interactive && /slack_bot_token:/ {
+            gsub(/.*slack_bot_token:[[:space:]]*/, "")
+            gsub(/"/, "")
+            if ($0 != "null") print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    # Parse presets.remote.interactive.slack_channel_id
+    REMOTE_SLACK_CHANNEL_ID=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /interactive:/ { in_interactive=1; next }
+        in_interactive && /^[[:space:]]+[a-z]/ && !/slack/ { next }
+        in_interactive && /slack_channel_id:/ {
+            gsub(/.*slack_channel_id:[[:space:]]*/, "")
+            gsub(/"/, "")
+            if ($0 != "null") print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    # Override slack settings if remote preset has values
+    [[ -n "$REMOTE_SLACK_BOT_TOKEN" ]] && INTERACTIVE_SLACK_BOT_TOKEN="$REMOTE_SLACK_BOT_TOKEN"
+    [[ -n "$REMOTE_SLACK_CHANNEL_ID" ]] && INTERACTIVE_SLACK_CHANNEL_ID="$REMOTE_SLACK_CHANNEL_ID"
+
     # Parse presets.remote.gateway
     REMOTE_QUESTIONS=$(awk '
         /^presets:/ { in_presets=1; next }
@@ -397,7 +478,7 @@ COMPLETED_JSON=$(printf '%s\n' "${COMPLETED_STEPS[@]}" | jq -R . | jq -s .)
 HOOKS_ON_PROCESSED_JSON=$(printf '%s\n' "${HOOKS_ON_PROCESSED[@]}" | jq -R . | jq -s .)
 HOOKS_ON_APPROVE_JSON=$(printf '%s\n' "${HOOKS_ON_APPROVE[@]}" | jq -R . | jq -s .)
 
-# Output JSON with v7.1 format (includes gateway and hooks)
+# Output JSON with v7.2 format (includes gateway, hooks, and interactive)
 jq -n \
     --arg task_id "$TASK_ID" \
     --arg step "$STEP" \
@@ -415,6 +496,10 @@ jq -n \
     --arg gw_feedback "$GATEWAY_FEEDBACK" \
     --argjson hooks_on_processed "$HOOKS_ON_PROCESSED_JSON" \
     --argjson hooks_on_approve "$HOOKS_ON_APPROVE_JSON" \
+    --argjson step_interactive "$STEP_INTERACTIVE" \
+    --arg interactive_channel "$INTERACTIVE_CHANNEL" \
+    --arg interactive_slack_bot_token "$INTERACTIVE_SLACK_BOT_TOKEN" \
+    --arg interactive_slack_channel_id "$INTERACTIVE_SLACK_CHANNEL_ID" \
     '{
         task_id: $task_id,
         step: $step,
@@ -428,6 +513,12 @@ jq -n \
         remote_mode: $remote_mode,
         steps: $steps,
         completed: $completed,
+        interactive: {
+            enabled: $step_interactive,
+            channel: $interactive_channel,
+            slack_bot_token: (if $interactive_slack_bot_token == "" or $interactive_slack_bot_token == "null" then null else $interactive_slack_bot_token end),
+            slack_channel_id: (if $interactive_slack_channel_id == "" or $interactive_slack_channel_id == "null" then null else $interactive_slack_channel_id end)
+        },
         gateway: {
             mode: (if $remote_mode then "remote" else "local" end),
             questions: $gw_questions,

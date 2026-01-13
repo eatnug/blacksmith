@@ -40,6 +40,9 @@ siat 스킬의 `scripts/` 폴더:
 - `siat-post.sh` - 스텝 완료 후 검증 및 다음 스텝 계산
 - `siat-gh-issue.sh` - GitHub 이슈 생성
 - `siat-gh-pr.sh` - GitHub PR 생성
+- `siat-slack-notify.sh` - Slack 알림 (webhook, 단방향)
+- `siat-slack-thread.sh` - Slack 스레드 대화 (bot token, 양방향)
+- `siat-wait-approval.sh` - GitHub 이슈에서 승인 폴링
 
 **경로 참조:** `${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/` 사용
 
@@ -50,7 +53,7 @@ siat 스킬의 `scripts/` 폴더:
 
 ---
 
-## Config Format (v7.0)
+## Config Format (v7.2)
 
 ```yaml
 steps:
@@ -61,6 +64,12 @@ steps:
 
 output:
   path: ".claude/siat/specs"
+
+# Interactive 스텝 채널 (instruction.md에 interactive: true인 스텝)
+interactive:
+  channel: local           # local | slack
+  slack_bot_token: null    # xoxb-... (slack 채널용)
+  slack_channel_id: null   # C... or D... (slack 채널용)
 
 gateway:
   questions: local              # local or script:xxx.sh
@@ -76,14 +85,20 @@ hooks:
 
 presets:
   remote:
+    slack_webhook_url: null     # 알림용 (one-way)
+    interactive:
+      channel: slack
+      slack_bot_token: null     # 대화용 (two-way)
+      slack_channel_id: null
     gateway:
-      questions: script:gh-poll.sh {spec_path} --type=questions
-      feedback: script:gh-poll.sh {spec_path} --type=feedback
+      questions: local
+      feedback: script:siat-wait-approval.sh {spec_path}
     hooks:
       on_processed:
-        - script:gh-issue.sh {spec_path}
+        - script:siat-gh-issue.sh {spec_path}
+        - script:siat-slack-notify.sh {spec_path}
       on_approve:
-        - script:gh-issue-close.sh {spec_path}
+        - script:siat-gh-issue-close.sh {spec_path}
 ```
 
 ---
@@ -112,7 +127,7 @@ open_questions: []
 ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{$ARGUMENTS}"
 ```
 
-**스크립트 출력 (JSON) - v7.1:**
+**스크립트 출력 (JSON) - v7.2:**
 ```json
 {
   "task_id": "login-page",
@@ -124,14 +139,20 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{
   "is_new_task": true,
   "remote_mode": true,
   "steps": ["specify", "plan", "implement", "review"],
+  "interactive": {
+    "enabled": true,
+    "channel": "slack",
+    "slack_bot_token": "xoxb-...",
+    "slack_channel_id": "D..."
+  },
   "gateway": {
     "mode": "remote",
-    "questions": "script:gh-poll.sh {spec_path} --type=questions",
-    "feedback": "script:gh-poll.sh {spec_path} --type=feedback"
+    "questions": "local",
+    "feedback": "script:siat-wait-approval.sh {spec_path}"
   },
   "hooks": {
-    "on_processed": ["script:gh-issue.sh {spec_path}"],
-    "on_approve": ["script:gh-issue-close.sh {spec_path}"]
+    "on_processed": ["script:siat-gh-issue.sh {spec_path}", "script:siat-slack-notify.sh {spec_path}"],
+    "on_approve": ["script:siat-gh-issue-close.sh {spec_path}"]
   },
   "frontmatter": {
     "id": "login-page",
@@ -167,10 +188,37 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{
 
 ### 4. Execute Step (AI 작업)
 
+**Interactive 스텝 분기 (CRITICAL):**
+
+`siat-pre.sh` 출력의 `interactive.enabled`가 `true`이면:
+
+**interactive.channel == "local":**
+- 기존처럼 `AskUserQuestion`으로 사용자와 대화
+- 터미널에서 실시간 대화
+
+**interactive.channel == "slack":**
+- `siat-slack-thread.sh`로 Slack 스레드에서 대화
+- 환경변수로 토큰 전달:
+  ```bash
+  SLACK_BOT_TOKEN="{interactive.slack_bot_token}" \
+  SLACK_CHANNEL_ID="{interactive.slack_channel_id}" \
+  siat-slack-thread.sh {spec_path} --init
+  ```
+- 질문 보내기: `--send "질문 내용"`
+- 답변 폴링: `--poll` (백그라운드로 실행)
+- 대화 완료 후 spec 문서 작성
+
+**Interactive 스텝이 아니면 (interactive.enabled == false):**
+- 분석/작업 수행 후 바로 spec 문서 작성
+- 질문은 `open_questions`에 기록, gateway.questions로 처리
+
+---
+
 **AI가 하는 일:**
 1. instruction.md 따라 분석/작업 수행
-2. spec_template.md 템플릿의 본문 섹션 작성
-3. `open_questions` 배열 작성 (미해결 질문)
+2. (Interactive 스텝) Slack/터미널에서 사용자와 대화하며 요구사항 명확화
+3. spec_template.md 템플릿의 본문 섹션 작성
+4. `open_questions` 배열 작성 (미해결 질문)
 
 **AI가 하지 않는 일 (스크립트가 처리):**
 - task_id 생성

@@ -12,7 +12,14 @@ steps:
 output:
   path: ".claude/siat/specs"
 
-# Gateway: 사용자 상호작용 채널
+# Interactive 스텝 채널 (instruction.md에 interactive: true인 스텝)
+interactive:
+  channel: local           # local | slack
+  # Slack settings (required when channel: slack)
+  slack_bot_token: null    # Bot User OAuth Token (xoxb-...)
+  slack_channel_id: null   # Channel ID to create threads in
+
+# Gateway: 사용자 상호작용 채널 (비-interactive 스텝)
 gateway:
   questions: local    # local = AskUserQuestion, script:xxx.sh
   feedback: local     # local = AskUserQuestion, script:xxx.sh
@@ -29,6 +36,13 @@ hooks:
 # Presets: 자주 쓰는 설정 묶음
 presets:
   remote:
+    # Slack notification (webhook - one-way alerts)
+    slack_webhook_url: null    # https://hooks.slack.com/services/...
+    # Slack interactive (bot token - two-way conversation)
+    interactive:
+      channel: slack
+      slack_bot_token: null    # xoxb-...
+      slack_channel_id: null   # C... or D...
     gateway:
       questions: local
       feedback: script:siat-wait-approval.sh {spec_path}

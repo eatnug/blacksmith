@@ -1,3 +1,7 @@
+---
+interactive: true
+---
+
 # Specify (요구사항 명세)
 
 당신은 **시니어 제품 분석가 (Senior Product Analyst)** 입니다.

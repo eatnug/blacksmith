@@ -4,6 +4,7 @@
 #
 # Usage:
 #   siat-slack-thread.sh <spec_path> --init              # Create thread, save thread_ts
+#   siat-slack-thread.sh <spec_path> --init --task-id=foo --step=specify  # With explicit task info
 #   siat-slack-thread.sh <spec_path> --send "<message>"  # Post to thread (simple message)
 #   echo "message" | siat-slack-thread.sh <spec_path> --send  # Post via stdin (special chars safe)
 #   siat-slack-thread.sh <spec_path> --poll              # Poll for new replies
@@ -28,6 +29,8 @@ shift
 ACTION=""
 MESSAGE=""
 GATEWAY_TYPE=""
+CLI_TASK_ID=""
+CLI_STEP=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -54,6 +57,14 @@ while [[ $# -gt 0 ]]; do
         --type=*)
             GATEWAY_TYPE="${1#--type=}"
             ACTION="gateway"
+            shift
+            ;;
+        --task-id=*)
+            CLI_TASK_ID="${1#--task-id=}"
+            shift
+            ;;
+        --step=*)
+            CLI_STEP="${1#--step=}"
             shift
             ;;
         *)
@@ -164,8 +175,16 @@ extract_spec_info() {
     local task_id=""
     local step=""
 
-    if [[ -f "$spec_path" ]]; then
+    # CLI arguments take precedence over spec file
+    if [[ -n "$CLI_TASK_ID" ]]; then
+        task_id="$CLI_TASK_ID"
+    elif [[ -f "$spec_path" ]]; then
         task_id=$(awk '/^---$/{if(in_fm)exit;in_fm=1;next} in_fm&&/^id:/{gsub(/^id:[[:space:]]*/,"");gsub(/"/,"");print;exit}' "$spec_path")
+    fi
+
+    if [[ -n "$CLI_STEP" ]]; then
+        step="$CLI_STEP"
+    elif [[ -f "$spec_path" ]]; then
         step=$(awk '/^---$/{if(in_fm)exit;in_fm=1;next} in_fm&&/^step:/{gsub(/^step:[[:space:]]*/,"");gsub(/"/,"");print;exit}' "$spec_path")
     fi
 
@@ -183,7 +202,7 @@ do_init() {
     local step="${spec_info#*|}"
 
     # Create initial message
-    local init_message="*[Siat] ${task_id} - ${step}*
+    local init_message="*[${step}][${task_id}]*
 
 Interactive step started. Please respond in this thread.
 

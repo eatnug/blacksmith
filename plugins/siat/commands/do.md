@@ -26,10 +26,58 @@ GitHub Issue/PR 기반 비동기 승인 워크플로우 활성화:
 2. 스크립트 출력의 `gateway`, `hooks` 설정을 그대로 사용
 3. AI는 환경변수 설정이나 플래그 파싱 불필요
 
-**필수 설정 (Slack 알림 사용 시):**
-```bash
-export SIAT_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
-```
+---
+
+### Remote 모드 사전 검증 (CRITICAL)
+
+**`--remote` 플래그 감지 시, 워크플로우 시작 전에 반드시 검증:**
+
+1. **config.yml 설정 확인:**
+   ```bash
+   # .claude/siat/config.yml의 presets.remote 섹션 확인
+   cat .claude/siat/config.yml | grep -A 10 "presets:" | grep -A 5 "remote:"
+   ```
+
+2. **필수 설정 체크리스트:**
+   | 설정 | 용도 | 필수 여부 |
+   |------|------|----------|
+   | `slack_bot_token` | Slack 대화 (xoxb-...) | interactive 스텝 사용 시 |
+   | `slack_user_id` | Slack User ID (U...) | interactive 스텝 사용 시 |
+   | `SIAT_SLACK_WEBHOOK_URL` (env) | Slack 알림 | on_processed hook 사용 시 |
+   | `gh` CLI 인증 | GitHub 이슈/PR | 항상 필수 |
+
+3. **검증 실패 시:**
+   - 누락된 설정을 사용자에게 안내
+   - 설정 방법 가이드 제공
+   - 워크플로우 시작하지 않음
+
+---
+
+### Slack User ID 설정 방법
+
+**각 사용자가 자신의 Slack User ID를 설정:**
+
+1. **User ID 확인 방법:**
+   - Slack에서 본인 프로필 클릭
+   - "..." 메뉴 → "Copy member ID"
+   - 또는 프로필 → "More" → Member ID 복사
+   - `U`로 시작하는 ID (예: `U09MA55SK0B`)
+
+2. **config.yml에 설정:**
+   ```yaml
+   presets:
+     remote:
+       interactive:
+         channel: slack
+         slack_bot_token: xoxb-your-token
+         slack_user_id: U09MA55SK0B  # 본인의 User ID
+   ```
+
+3. **자동 동작:**
+   - siat가 `conversations.open` API로 DM 채널 자동 생성/조회
+   - 채널 ID 직접 설정 불필요
+
+**주의:** `slack_user_id`는 사용자별로 다름. 공유 레포에서는 각자 로컬 config 수정 필요
 
 ---
 
@@ -120,11 +168,32 @@ open_questions: []
 
 ## Execution Flow
 
+### 0. Slug 생성 (새 태스크인 경우)
+
+**새 태스크 시작 시, 영어 slug를 별도로 생성:**
+
+1. 원본 요청은 그대로 유지 (번역하지 않음 - 의미 왜곡 방지)
+2. task_id용 영어 slug만 별도 생성 (kebab-case, 3-5 단어)
+3. siat-pre.sh에는 slug를 전달, spec 문서에는 원본 요청 기록
+
+**예시:**
+| 원본 요청 | 영어 slug (task_id) |
+|----------|---------------------|
+| `이슈 가독성이 안좋아` | `improve-issue-readability` |
+| `로그인 페이지 만들어줘` | `create-login-page` |
+| `버그 수정해줘 - 버튼 안눌림` | `fix-button-click-bug` |
+
+**플래그는 보존, 요청 부분만 slug로:**
+- `--remote 이슈 가독성이 안좋아` → siat-pre.sh에 `--remote improve-issue-readability` 전달
+- spec 문서의 "원본 요청"에는 `이슈 가독성이 안좋아` 기록
+
+---
+
 ### 1. Pre-Step: 메타데이터 및 설정 자동 생성
 
-**스크립트 실행 (플래그 포함하여 전달):**
+**스크립트 실행 (영어 slug로 전달):**
 ```bash
-${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{$ARGUMENTS}"
+${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{step}" "{flags} {english_slug}"
 ```
 
 **스크립트 출력 (JSON) - v7.2:**
@@ -205,8 +274,25 @@ ${CLAUDE_PLUGIN_ROOT}/skills/siat/scripts/siat-pre.sh .claude/siat/config.yml "{
   siat-slack-thread.sh {spec_path} --init
   ```
 - 질문 보내기: `--send "질문 내용"`
-- 답변 폴링: `--poll` (백그라운드로 실행)
+- 답변 폴링: `--poll` **(백그라운드로 실행)**
 - 대화 완료 후 spec 문서 작성
+
+**Slack 답변 대기 (백그라운드 실행):**
+
+1. `--send`로 질문 보내기 (동기)
+2. `--poll`을 백그라운드로 실행:
+   ```bash
+   # Bash tool with run_in_background: true
+   SLACK_BOT_TOKEN="..." SLACK_CHANNEL_ID="..." \
+   siat-slack-thread.sh {spec_path} --poll
+   ```
+3. 사용자에게 "Slack에서 답변해주세요" 안내
+4. 완료 시 `task-notification` 자동 수신
+5. TaskOutput으로 결과 읽기:
+   ```json
+   {"success": true, "message": {"text": "사용자 답변", "user": "U...", "ts": "..."}}
+   ```
+6. 답변을 바탕으로 다음 질문 또는 spec 작성
 
 **Interactive 스텝이 아니면 (interactive.enabled == false):**
 - 분석/작업 수행 후 바로 spec 문서 작성

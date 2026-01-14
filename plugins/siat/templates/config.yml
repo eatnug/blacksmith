@@ -41,8 +41,8 @@ presets:
     # Slack interactive (bot token - two-way conversation)
     interactive:
       channel: slack
-      slack_bot_token: null    # xoxb-...
-      slack_channel_id: null   # C... or D...
+      slack_bot_token: null    # xoxb-... (get from Slack App > OAuth & Permissions)
+      slack_user_id: null      # U... (Slack profile > ... > Copy member ID)
     gateway:
       questions: local
       feedback: script:siat-wait-approval.sh {spec_path}

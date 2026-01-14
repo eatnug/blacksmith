@@ -11,7 +11,8 @@
 #
 # Required environment variables:
 #   SLACK_BOT_TOKEN   - Bot User OAuth Token (xoxb-...)
-#   SLACK_CHANNEL_ID  - Channel ID to post in
+#   SLACK_USER_ID     - User ID to open DM with (preferred, auto-resolves channel)
+#   SLACK_CHANNEL_ID  - Channel ID to post in (fallback if USER_ID not set)
 #
 # Optional:
 #   SIAT_SLACK_POLL_INTERVAL - Poll interval in seconds (default: 5)
@@ -59,8 +60,24 @@ if [[ -z "$SLACK_BOT_TOKEN" ]]; then
     exit 1
 fi
 
+# Resolve channel ID from user ID if needed
+if [[ -z "$SLACK_CHANNEL_ID" && -n "$SLACK_USER_ID" ]]; then
+    # Use conversations.open to get/create DM channel
+    OPEN_RESPONSE=$(curl -s -X POST "https://slack.com/api/conversations.open" \
+        -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+        -H "Content-Type: application/json; charset=utf-8" \
+        -d "{\"users\":\"$SLACK_USER_ID\"}")
+
+    if [[ "$(echo "$OPEN_RESPONSE" | jq -r '.ok')" == "true" ]]; then
+        SLACK_CHANNEL_ID=$(echo "$OPEN_RESPONSE" | jq -r '.channel.id')
+    else
+        echo "$OPEN_RESPONSE" | jq '{error: "failed to open DM channel", response: .}'
+        exit 1
+    fi
+fi
+
 if [[ -z "$SLACK_CHANNEL_ID" ]]; then
-    echo '{"error": "SLACK_CHANNEL_ID not set"}' | jq .
+    echo '{"error": "SLACK_CHANNEL_ID or SLACK_USER_ID must be set"}' | jq .
     exit 1
 fi
 

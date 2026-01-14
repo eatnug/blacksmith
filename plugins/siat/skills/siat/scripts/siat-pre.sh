@@ -38,19 +38,25 @@ fi
 # ============================================================================
 
 slugify() {
-    echo "$1" | \
+    local result
+    result=$(echo "$1" | \
         tr '[:upper:]' '[:lower:]' | \
-        sed 's/[^a-z0-9가-힣]/-/g' | \
+        sed 's/[^a-z0-9]/-/g' | \
         sed 's/--*/-/g' | \
         sed 's/^-//' | \
         sed 's/-$//' | \
-        cut -c1-50
+        cut -c1-50)
+    # Fallback to timestamp if empty (e.g., all non-ASCII input)
+    if [[ -z "$result" ]]; then
+        result="task-$(date +%Y%m%d-%H%M%S)"
+    fi
+    echo "$result"
 }
 
 parse_yaml_value() {
     local file="$1"
     local key="$2"
-    grep "^${key}:" "$file" 2>/dev/null | sed "s/^${key}:[[:space:]]*//" | tr -d '"' || echo ""
+    grep "^${key}:" "$file" 2>/dev/null | sed "s/^${key}:[[:space:]]*//" | sed 's/[[:space:]]*#.*//' | tr -d '"' || echo ""
 }
 
 parse_yaml_nested() {
@@ -63,6 +69,7 @@ parse_yaml_nested() {
         in_parent && $0 ~ "^[[:space:]]+"key":" {
             gsub(/^[[:space:]]+/, "")
             gsub(/^[^:]+:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             print
             exit
@@ -349,6 +356,7 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
         in_remote && /interactive:/ { in_interactive=1; next }
         in_interactive && /channel:/ {
             gsub(/.*channel:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             print
             exit
@@ -366,6 +374,7 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
         in_interactive && /^[[:space:]]+[a-z]/ && !/slack/ { next }
         in_interactive && /slack_bot_token:/ {
             gsub(/.*slack_bot_token:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             if ($0 != "null") print
             exit
@@ -381,6 +390,23 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
         in_interactive && /^[[:space:]]+[a-z]/ && !/slack/ { next }
         in_interactive && /slack_channel_id:/ {
             gsub(/.*slack_channel_id:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
+            gsub(/"/, "")
+            if ($0 != "null") print
+            exit
+        }
+    ' "$CONFIG_PATH")
+
+    # Parse presets.remote.interactive.slack_user_id
+    REMOTE_SLACK_USER_ID=$(awk '
+        /^presets:/ { in_presets=1; next }
+        in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
+        in_presets && /remote:/ { in_remote=1; next }
+        in_remote && /interactive:/ { in_interactive=1; next }
+        in_interactive && /^[[:space:]]+[a-z]/ && !/slack/ { next }
+        in_interactive && /slack_user_id:/ {
+            gsub(/.*slack_user_id:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             if ($0 != "null") print
             exit
@@ -390,6 +416,45 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
     # Override slack settings if remote preset has values
     [[ -n "$REMOTE_SLACK_BOT_TOKEN" ]] && INTERACTIVE_SLACK_BOT_TOKEN="$REMOTE_SLACK_BOT_TOKEN"
     [[ -n "$REMOTE_SLACK_CHANNEL_ID" ]] && INTERACTIVE_SLACK_CHANNEL_ID="$REMOTE_SLACK_CHANNEL_ID"
+    [[ -n "$REMOTE_SLACK_USER_ID" ]] && INTERACTIVE_SLACK_USER_ID="$REMOTE_SLACK_USER_ID"
+
+    # ========================================================================
+    # Remote Mode Validation
+    # ========================================================================
+    VALIDATION_ERRORS=()
+
+    # Check gh CLI authentication
+    if ! gh auth status &>/dev/null; then
+        VALIDATION_ERRORS+=("gh CLI not authenticated. Run: gh auth login")
+    fi
+
+    # Check Slack settings if interactive channel is slack
+    if [[ "$INTERACTIVE_CHANNEL" == "slack" ]]; then
+        if [[ -z "$INTERACTIVE_SLACK_BOT_TOKEN" || "$INTERACTIVE_SLACK_BOT_TOKEN" == "null" ]]; then
+            VALIDATION_ERRORS+=("slack_bot_token not set in presets.remote.interactive")
+        fi
+        if [[ -z "$INTERACTIVE_SLACK_USER_ID" && -z "$INTERACTIVE_SLACK_CHANNEL_ID" ]] || \
+           [[ "$INTERACTIVE_SLACK_USER_ID" == "null" && "$INTERACTIVE_SLACK_CHANNEL_ID" == "null" ]]; then
+            VALIDATION_ERRORS+=("slack_user_id (or slack_channel_id) not set in presets.remote.interactive")
+        fi
+    fi
+
+    # Exit with error if validation failed
+    if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+        ERRORS_JSON=$(printf '%s\n' "${VALIDATION_ERRORS[@]}" | jq -R . | jq -s .)
+        jq -n \
+            --argjson errors "$ERRORS_JSON" \
+            '{
+                error: "remote mode validation failed",
+                missing: $errors,
+                help: {
+                    gh_auth: "Run: gh auth login",
+                    slack_bot_token: "Get from: https://api.slack.com/apps > OAuth & Permissions > Bot User OAuth Token",
+                    slack_user_id: "Slack profile > ... > Copy member ID"
+                }
+            }'
+        exit 1
+    fi
 
     # Parse presets.remote.gateway
     REMOTE_QUESTIONS=$(awk '
@@ -400,6 +465,7 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
         in_remote && /gateway:/ { in_gateway=1; next }
         in_gateway && /questions:/ {
             gsub(/.*questions:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             print
             exit
@@ -414,6 +480,7 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
         in_remote && /gateway:/ { in_gateway=1; next }
         in_gateway && /feedback:/ {
             gsub(/.*feedback:[[:space:]]*/, "")
+            gsub(/[[:space:]]*#.*/, "")
             gsub(/"/, "")
             print
             exit
@@ -500,6 +567,7 @@ jq -n \
     --arg interactive_channel "$INTERACTIVE_CHANNEL" \
     --arg interactive_slack_bot_token "$INTERACTIVE_SLACK_BOT_TOKEN" \
     --arg interactive_slack_channel_id "$INTERACTIVE_SLACK_CHANNEL_ID" \
+    --arg interactive_slack_user_id "$INTERACTIVE_SLACK_USER_ID" \
     '{
         task_id: $task_id,
         step: $step,
@@ -517,6 +585,7 @@ jq -n \
             enabled: $step_interactive,
             channel: $interactive_channel,
             slack_bot_token: (if $interactive_slack_bot_token == "" or $interactive_slack_bot_token == "null" then null else $interactive_slack_bot_token end),
+            slack_user_id: (if $interactive_slack_user_id == "" or $interactive_slack_user_id == "null" then null else $interactive_slack_user_id end),
             slack_channel_id: (if $interactive_slack_channel_id == "" or $interactive_slack_channel_id == "null" then null else $interactive_slack_channel_id end)
         },
         gateway: {

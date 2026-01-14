@@ -4,7 +4,8 @@
 #
 # Usage:
 #   siat-slack-thread.sh <spec_path> --init              # Create thread, save thread_ts
-#   siat-slack-thread.sh <spec_path> --send "<message>"  # Post to thread
+#   siat-slack-thread.sh <spec_path> --send "<message>"  # Post to thread (simple message)
+#   echo "message" | siat-slack-thread.sh <spec_path> --send  # Post via stdin (special chars safe)
 #   siat-slack-thread.sh <spec_path> --poll              # Poll for new replies
 #   siat-slack-thread.sh <spec_path> --type=questions    # Gateway mode: ask questions
 #   siat-slack-thread.sh <spec_path> --type=feedback     # Gateway mode: get feedback
@@ -36,8 +37,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         --send)
             ACTION="send"
-            MESSAGE="$2"
-            shift 2
+            # Check if next arg exists and is not another flag
+            if [[ -n "$2" && ! "$2" =~ ^-- ]]; then
+                MESSAGE="$2"
+                shift 2
+            else
+                # Read message from stdin (handles special characters safely)
+                MESSAGE=""
+                shift
+            fi
             ;;
         --poll)
             ACTION="poll"
@@ -53,6 +61,16 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Read from stdin if --send was used without message argument
+if [[ "$ACTION" == "send" && -z "$MESSAGE" ]]; then
+    if [[ ! -t 0 ]]; then
+        MESSAGE=$(cat)
+    else
+        echo '{"error": "No message provided. Use --send \"message\" or pipe message via stdin"}' | jq .
+        exit 1
+    fi
+fi
 
 # Validate environment
 if [[ -z "$SLACK_BOT_TOKEN" ]]; then

@@ -1,5 +1,5 @@
 #!/bin/bash
-# siat-pre.sh - Pre-step hook for siat workflow (v7.1)
+# siat-pre.sh - Pre-step hook for siat workflow (v7.8)
 # Generates deterministic metadata before AI step execution
 # Parses flags (--remote, --local) and provides gateway/hooks settings
 #
@@ -460,9 +460,10 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
     REMOTE_QUESTIONS=$(awk '
         /^presets:/ { in_presets=1; next }
         in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
-        in_presets && /remote:/ { in_remote=1; next }
-        in_remote && /^[[:space:]]{4}[a-z]/ && !/gateway/ { in_remote=0 }
-        in_remote && /gateway:/ { in_gateway=1; next }
+        in_presets && /^[[:space:]]+remote:/ { in_remote=1; next }
+        in_remote && /^[a-z]/ { in_remote=0 }
+        in_remote && /^[[:space:]]+gateway:/ { in_gateway=1; next }
+        in_gateway && /^[[:space:]]+[a-z]/ && !/questions/ && !/feedback/ { in_gateway=0 }
         in_gateway && /questions:/ {
             gsub(/.*questions:[[:space:]]*/, "")
             gsub(/[[:space:]]*#.*/, "")
@@ -475,9 +476,10 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
     REMOTE_FEEDBACK=$(awk '
         /^presets:/ { in_presets=1; next }
         in_presets && /^[a-z]/ && !/^[[:space:]]/ { in_presets=0 }
-        in_presets && /remote:/ { in_remote=1; next }
-        in_remote && /^[[:space:]]{4}[a-z]/ && !/gateway/ { in_remote=0 }
-        in_remote && /gateway:/ { in_gateway=1; next }
+        in_presets && /^[[:space:]]+remote:/ { in_remote=1; next }
+        in_remote && /^[a-z]/ { in_remote=0 }
+        in_remote && /^[[:space:]]+gateway:/ { in_gateway=1; next }
+        in_gateway && /^[[:space:]]+[a-z]/ && !/questions/ && !/feedback/ { in_gateway=0 }
         in_gateway && /feedback:/ {
             gsub(/.*feedback:[[:space:]]*/, "")
             gsub(/[[:space:]]*#.*/, "")
@@ -498,9 +500,9 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
     done < <(awk '
         /^presets:/ { in_presets=1; next }
         in_presets && /^[a-z]/ && !/^[[:space:]]/ { exit }
-        in_presets && /remote:/ { in_remote=1; next }
-        in_remote && /^[[:space:]]{4}[a-z]/ && !/hooks/ { next }
-        in_remote && /hooks:/ { in_hooks=1; next }
+        in_presets && /^[[:space:]]+remote:/ { in_remote=1; next }
+        in_remote && /^[a-z]/ { exit }
+        in_remote && /^[[:space:]]+hooks:/ { in_hooks=1; next }
         in_hooks && /on_processed:/ { in_op=1; next }
         in_op && /^[[:space:]]+-/ {
             gsub(/^[[:space:]]+-[[:space:]]*/, "")
@@ -522,9 +524,9 @@ if [[ "$REMOTE_MODE" == "true" ]]; then
     done < <(awk '
         /^presets:/ { in_presets=1; next }
         in_presets && /^[a-z]/ && !/^[[:space:]]/ { exit }
-        in_presets && /remote:/ { in_remote=1; next }
-        in_remote && /^[[:space:]]{4}[a-z]/ && !/hooks/ { next }
-        in_remote && /hooks:/ { in_hooks=1; next }
+        in_presets && /^[[:space:]]+remote:/ { in_remote=1; next }
+        in_remote && /^[a-z]/ { exit }
+        in_remote && /^[[:space:]]+hooks:/ { in_hooks=1; next }
         in_hooks && /on_approve:/ { in_oa=1; next }
         in_oa && /^[[:space:]]+-/ {
             gsub(/^[[:space:]]+-[[:space:]]*/, "")

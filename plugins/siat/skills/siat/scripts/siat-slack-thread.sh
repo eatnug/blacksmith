@@ -3,7 +3,8 @@
 # Enables real-time conversation in Slack threads for interactive steps
 #
 # Usage:
-#   siat-slack-thread.sh <spec_path> --init              # Create thread, save thread_ts
+#   siat-slack-thread.sh <spec_path> --init              # Create thread with default message
+#   siat-slack-thread.sh <spec_path> --init "message"    # Create thread with custom message
 #   siat-slack-thread.sh <spec_path> --init --task-id=foo --step=specify  # With explicit task info
 #   siat-slack-thread.sh <spec_path> --send "<message>"  # Post to thread (simple message)
 #   echo "message" | siat-slack-thread.sh <spec_path> --send  # Post via stdin (special chars safe)
@@ -36,7 +37,14 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --init)
             ACTION="init"
-            shift
+            # Check if next arg exists and is not another flag
+            if [[ -n "$2" && ! "$2" =~ ^-- ]]; then
+                MESSAGE="$2"
+                shift 2
+            else
+                MESSAGE=""
+                shift
+            fi
             ;;
         --send)
             ACTION="send"
@@ -81,6 +89,11 @@ if [[ "$ACTION" == "send" && -z "$MESSAGE" ]]; then
         echo '{"error": "No message provided. Use --send \"message\" or pipe message via stdin"}' | jq .
         exit 1
     fi
+fi
+
+# Read from stdin if --init was used without message argument (optional - uses default if empty)
+if [[ "$ACTION" == "init" && -z "$MESSAGE" && ! -t 0 ]]; then
+    MESSAGE=$(cat)
 fi
 
 # Validate environment
@@ -201,13 +214,18 @@ do_init() {
     local task_id="${spec_info%|*}"
     local step="${spec_info#*|}"
 
-    # Create initial message
-    local init_message="*[${step}][${task_id}]*
+    # Use custom message if provided, otherwise use default
+    local init_message
+    if [[ -n "$MESSAGE" ]]; then
+        init_message="$MESSAGE"
+    else
+        init_message="*[${task_id}][${step}]*
 
 Interactive step started. Please respond in this thread.
 
 ---
 _Waiting for questions..._"
+    fi
 
     local response
     response=$(slack_api "POST" "chat.postMessage" "$(jq -n \

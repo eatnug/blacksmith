@@ -3,8 +3,7 @@
 
 # Workflow Steps
 steps:
-  - discover   # Understand current state
-  - specify    # Define target state & requirements (interactive)
+  - clarify    # Requirements + codebase exploration (interactive)
   - design     # Plan how to bridge the gap
   - implement  # Execute the plan
   - verify     # Final quality gate

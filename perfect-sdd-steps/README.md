@@ -6,71 +6,82 @@
 
 ## Overview
 
-This is a refined SDD workflow with **5 perfect steps** designed to:
+This is a refined SDD workflow with **4 perfect steps** designed to:
 
-1. ✅ **Understand current state** before planning changes
-2. ✅ **Clarify requirements** explicitly with users
-3. ✅ **Plan precisely** how to bridge the gap
-4. ✅ **Execute cleanly** with clear guidance
-5. ✅ **Validate thoroughly** before shipping
+1. ✅ **Clarify organically** - Requirements + codebase exploration together
+2. ✅ **Plan precisely** - How to bridge the gap
+3. ✅ **Execute cleanly** - With clear guidance
+4. ✅ **Validate thoroughly** - Before shipping
 
-### Key Innovation: Radical Spec Minimalism
+### Key Innovation: Organic Clarification
 
-Each step outputs **ultra-concise specs** (≤150-250 lines) containing ONLY crucial information:
-- **42% less context** than traditional workflows
-- **No LLM distraction** from verbose specs
-- **Faster execution** with clearer guidance
+**The Reality**: Requirements and code exploration don't happen sequentially - they inform each other!
+
+❌ **Linear (doesn't work)**:
+```
+1. Get all requirements
+2. Then explore code
+```
+
+✅ **Organic (how it actually works)**:
+```
+User: "Add quantity control"
+→ You: (explore code) "Found CartItem..."
+→ You: "Should there be a max?" (informed by seeing item.stock)
+→ User: "Yes, stock limit"
+→ Continue iterating...
+```
+
+**CLARIFY step does both simultaneously** - requirements become clear AS you explore the codebase.
 
 ---
 
-## The 5 Steps
+## The 4 Steps
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌───────────┐   ┌──────────┐
-│ DISCOVER │ → │ SPECIFY  │ → │  DESIGN  │ → │ IMPLEMENT │ → │  VERIFY  │
-└──────────┘   └──────────┘   └──────────┘   └───────────┘   └──────────┘
-  Current       Target         Gap              Execute        Quality
-   State         State        Analysis                          Gate
+┌──────────┐   ┌──────────┐   ┌───────────┐   ┌──────────┐
+│ CLARIFY  │ → │  DESIGN  │ → │ IMPLEMENT │ → │  VERIFY  │
+└──────────┘   └──────────┘   └───────────┘   └──────────┘
+  What +        How to          Execute         Quality
+  Where         Bridge                           Gate
 ```
 
-### 1. DISCOVER (Current State Analysis)
+### 1. CLARIFY (Requirements + Context Discovery)
 
-**Role**: Senior Software Archaeologist
-**Interactive**: No
-**Output**: `discover.md` (≤150 lines)
+**Role**: Senior Product Analyst + Software Archaeologist
+**Interactive**: **YES** - Iterative exploration with user
+**Output**: `clarify.md` (≤250 lines)
 
-**Purpose**: Map the terrain before planning the journey.
+**Purpose**: Understand WHAT to build AND WHERE it fits - simultaneously.
 
 **What It Does**:
+- Clarifies requirements through user questions
 - Explores relevant codebase areas
-- Identifies existing patterns and conventions
-- Documents technical constraints
-- **Surfaces knowledge gaps explicitly**
+- Asks informed questions based on code findings
+- Documents must-have requirements with acceptance criteria
+- Maps current architecture and patterns
+- Identifies constraints and integration points
 
-**Why It Matters**: You can't plan a good solution without understanding what already exists.
+**Why It's Combined**:
+- Can't ask smart questions without seeing the code
+- Can't explore efficiently without knowing what you're looking for
+- Requirements and codebase understanding inform each other
 
----
-
-### 2. SPECIFY (Requirements & Target State)
-
-**Role**: Senior Product Analyst
-**Interactive**: **YES** - Asks user questions
-**Output**: `specify.md` (≤200 lines)
-
-**Purpose**: Define WHAT we're building and WHY.
-
-**What It Does**:
-- Clarifies the problem being solved
-- Documents must-have requirements (with acceptance criteria)
-- Sets explicit scope boundaries (in/out)
-- Defines measurable success criteria
-- **Lists assumptions and unknowns**
-
-**Why It Matters**: Unclear requirements = wasted implementation effort.
+**Example Flow**:
+```
+1. User: "Add quantity control to cart"
+2. You: (explore) Found CartItem component...
+3. You: "Should this be part of CartItem or separate?" (informed question)
+4. User: "Separate for reusability"
+5. You: (explore more) Found item.stock property...
+6. You: "Use stock as max limit?" (informed question)
+7. User: "Yes"
+8. Result: Clear requirements + understanding of where it fits
+```
 
 ---
 
-### 3. DESIGN (Gap Analysis & Solution)
+### 2. DESIGN (Gap Analysis & Solution)
 
 **Role**: Software Architect / Technical Lead
 **Interactive**: No
@@ -89,7 +100,7 @@ Each step outputs **ultra-concise specs** (≤150-250 lines) containing ONLY cru
 
 ---
 
-### 4. IMPLEMENT (Execution)
+### 3. IMPLEMENT (Execution)
 
 **Role**: Senior Software Engineer
 **Interactive**: No
@@ -107,7 +118,7 @@ Each step outputs **ultra-concise specs** (≤150-250 lines) containing ONLY cru
 
 ---
 
-### 5. VERIFY (Quality Gate)
+### 4. VERIFY (Quality Gate)
 
 **Role**: QA Engineer / Code Reviewer
 **Interactive**: No
@@ -145,7 +156,7 @@ Traditional SDD specs are **too verbose**:
 - ✅ No examples or fluff
 - ✅ Scannable in < 1 minute
 
-**Total context reduction**: ~780 lines → ~450 lines (42% reduction)
+**Total context**: ~800 lines for 4 steps (vs ~1200+ in verbose workflows)
 
 ---
 
@@ -156,8 +167,7 @@ Traditional SDD specs are **too verbose**:
 1. Copy these step templates to your `.claude/siat/steps/` directory:
 
 ```bash
-cp -r perfect-sdd-steps/discover .claude/siat/steps/
-cp -r perfect-sdd-steps/specify .claude/siat/steps/
+cp -r perfect-sdd-steps/clarify .claude/siat/steps/
 cp -r perfect-sdd-steps/design .claude/siat/steps/
 cp -r perfect-sdd-steps/implement .claude/siat/steps/
 cp -r perfect-sdd-steps/verify .claude/siat/steps/
@@ -167,8 +177,7 @@ cp -r perfect-sdd-steps/verify .claude/siat/steps/
 
 ```yaml
 steps:
-  - discover
-  - specify
+  - clarify
   - design
   - implement
   - verify
@@ -189,71 +198,59 @@ steps:
 
 ---
 
-## Comparison: Current vs Perfect
+## Comparison: Old vs New
 
-| Aspect | Current Workflow | Perfect Workflow |
-|--------|-----------------|------------------|
-| **Steps** | specify → plan → implement → review | discover → specify → design → implement → verify |
-| **Current State** | Analyzed during plan | Dedicated discover step |
-| **Spec Length** | ~150-250 lines each | ≤150-200 lines each |
-| **Total Context** | ~780 lines | ~450 lines (42% less) |
-| **Knowledge Gaps** | Implicit | Explicit in every step |
-| **Clarity** | Good | Excellent |
-| **LLM Efficiency** | Moderate | High |
+| Aspect | Old (5 Steps) | New (4 Steps) |
+|--------|---------------|---------------|
+| **Steps** | discover → specify → design → implement → verify | **clarify** → design → implement → verify |
+| **Problem** | ❌ Can't discover without knowing what to look for | ✅ Explore and clarify together |
+| **Process** | ❌ Artificial separation | ✅ Natural, iterative flow |
+| **Questions** | ❌ Asked blindly | ✅ Asked based on code findings |
+| **Total Context** | ~900 lines | ~800 lines |
+| **Efficiency** | Good | Better |
 
 ---
 
 ## Key Innovations
 
-### 1. Explicit Discovery Phase
+### 1. Organic Clarification Process
 
-**Problem**: Jumping to design without understanding current state leads to:
-- Reinventing existing solutions
-- Violating established patterns
-- Underestimating complexity
+**Problem**: Can't get clear requirements without understanding current state, but can't explore efficiently without knowing what you're building.
 
-**Solution**: Dedicated DISCOVER step that maps the terrain first.
+**Solution**: CLARIFY step does both iteratively:
+- Explore code → Ask informed questions → Refine requirements → Explore more
 
-### 2. Knowledge Gap Surfacing
+### 2. Informed Questions
 
-**Problem**: Unknowns left implicit cause:
-- Incorrect assumptions
-- Missing requirements
-- Design rework
+**Instead of**:
+- ❌ "What color should the button be?" (too detailed, premature)
+- ❌ "Should we use React?" (you can see they're using React)
 
-**Solution**: Every step explicitly documents "what we don't know yet."
+**Ask**:
+- ✅ "I see CartItem uses optimistic updates. Same for quantity?"
+- ✅ "Found item.stock property. Use this for max limit?"
 
 ### 3. Radical Spec Minimalism
 
-**Problem**: Verbose specs cause:
-- LLM distraction and errors
-- Slow processing
-- High token costs
+**Problem**: Verbose specs cause LLM distraction, errors, slow processing.
 
-**Solution**: Ultra-concise specs with only crucial information.
+**Solution**: Ultra-concise specs with only crucial information (≤250 lines each).
 
 ### 4. Clear Decision Points
 
-**Problem**: Ambiguous outcomes make next steps unclear.
-
-**Solution**: Each step has explicit completion criteria and clear handoff.
+Each step has explicit completion criteria and clear handoff to next step.
 
 ---
 
 ## Best Practices
 
-### For DISCOVER
-- ✅ Read actual code, don't assume
-- ✅ Follow execution paths
-- ✅ Document patterns found
-- ❌ Don't explore everything, just what's relevant
-
-### For SPECIFY
-- ✅ Ask strategic questions
+### For CLARIFY
+- ✅ Explore code while asking questions
+- ✅ Ask questions informed by code findings
 - ✅ Make requirements testable
-- ✅ Set clear scope boundaries
-- ❌ Don't jump to solutions
-- ❌ Don't leave things ambiguous
+- ✅ Document both requirements AND current state
+- ❌ Don't get all requirements first then explore
+- ❌ Don't ask questions you could answer by reading code
 
 ### For DESIGN
 - ✅ Evaluate multiple options
@@ -280,36 +277,36 @@ steps:
 
 ## FAQ
 
-### Q: Why 5 steps instead of 4?
+### Q: Why combine requirements and code exploration?
 
-**A**: The DISCOVER step is crucial. Without it, you jump into design without understanding current state, leading to poor decisions. It's worth the extra step.
+**A**: Because that's how it actually works! You can't ask smart questions about requirements without seeing the code, and you can't explore efficiently without knowing what you're building. They inform each other.
 
-### Q: Aren't shorter specs risky? Might we miss details?
+### Q: Won't this make CLARIFY too complex?
 
-**A**: No. We're removing **redundancy and fluff**, not critical information. Every line in these specs earns its place.
+**A**: No - it makes it more natural. The artificial separation was actually more complex because you had to context-switch between "get requirements" mode and "explore code" mode.
 
-### Q: What if my task is complex and needs longer specs?
+### Q: What if I don't know what code to explore yet?
 
-**A**: Break it into smaller tasks. Complexity doesn't justify verbosity. Each task should be simple enough for concise specs.
+**A**: Start broad, then narrow down:
+1. Get basic request from user ("add quantity control")
+2. Explore general area (cart-related files)
+3. Ask informed questions based on what you find
+4. Explore more specifically based on answers
+5. Iterate until clear
 
-### Q: How do I migrate from the old workflow?
+### Q: How long should CLARIFY take?
 
-**A**: Run both in parallel for 2-3 tasks. Compare outcomes. Migrate when confident.
-
-### Q: Can I customize these steps?
-
-**A**: Yes! These are templates. Adapt them to your project's needs, but maintain the minimalism principle.
+**A**: As long as needed to eliminate blocking unknowns. Could be 5 minutes for simple features, 30+ minutes for complex ones. Don't rush it - clarity here saves time later.
 
 ---
 
 ## Expected Benefits
 
-1. **Clearer Understanding**: DISCOVER ensures current state is deeply understood
-2. **Better Requirements**: SPECIFY forces explicit clarification of needs
-3. **Stronger Designs**: DESIGN has full context (current + target state)
-4. **Faster Execution**: Clear plans reduce confusion and iteration
-5. **Higher Quality**: VERIFY catches issues before they ship
-6. **Less LLM Distraction**: 42% less context = fewer errors, faster processing
+1. **More Natural Flow**: Matches how developers actually work
+2. **Better Questions**: Informed by actual code, not theoretical
+3. **Less Back-and-Forth**: Fewer "oh wait, I didn't know X existed" moments
+4. **Clearer Requirements**: Understanding code helps clarify what's realistic
+5. **Faster Overall**: One organic phase vs two artificial phases
 
 ---
 
@@ -319,12 +316,9 @@ steps:
 perfect-sdd-steps/
 ├── README.md (this file)
 ├── config.yml (workflow configuration)
-├── discover/
+├── clarify/
 │   ├── instruction.md (guidance for AI)
 │   └── spec_template.md (output format)
-├── specify/
-│   ├── instruction.md
-│   └── spec_template.md
 ├── design/
 │   ├── instruction.md
 │   └── spec_template.md
@@ -349,18 +343,12 @@ Improvements welcome! When proposing changes:
 
 ---
 
-## License
-
-Same as parent siat plugin.
-
----
-
 ## Credits
 
 Designed based on:
 - Software engineering best practices
 - LLM efficiency research
 - Real-world SDD workflow analysis
-- Feedback from engineering teams
+- Feedback on how developers actually work
 
-**Principle**: Perfect is the enemy of good, but good is the enemy of clear.
+**Principle**: The best workflow is the one that matches reality, not theory.

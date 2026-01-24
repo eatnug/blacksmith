@@ -1,37 +1,33 @@
 ---
 name: format-response
-description: Format all responses according to terminal width and template rules. Use automatically on EVERY response before answering the user. Check terminal width first, then apply formatting rules from template.md to ensure consistent, readable output.
+description: Format responses based on terminal width. Hook automatically injects context - no manual invocation needed.
+user_invocable: false
 ---
 
 # Format Response
 
-## 적용 시점
+이 플러그인은 `UserPromptSubmit` 훅을 통해 자동으로 동작합니다.
 
-모든 응답에 이 규칙을 적용한다.
+## 동작 방식
 
-## 준비
+1. 사용자가 프롬프트를 입력하면 `inject-format-context.sh` 훅이 실행됨
+2. 훅이 터미널 너비를 확인하고 `<terminal-format-context>` 태그로 컨텍스트 주입
+3. Claude가 해당 컨텍스트를 보고 응답을 포맷팅
 
-1. 이 스킬 폴더의 `template.md`를 읽는다
-2. 해당 템플릿의 구조와 규칙을 따른다
+## 포맷팅 규칙
 
-## 터미널 너비 확인
+터미널 너비에 따라 자동 적용:
 
-테이블, 긴 목록, 코드블록 등 구조화된 출력 전에:
+| 너비 | 모드 | 테이블 | 코드 |
+|------|------|--------|------|
+| 120+ | wide | 전체 표시 | 줄바꿈 불필요 |
+| 80-119 | standard | 축약 | 너비에 맞게 줄바꿈 |
+| <80 | narrow | 리스트로 전환 | 최소 들여쓰기 |
 
-```bash
-tput cols
-```
+## 사용자 선호 (오버라이드)
 
-결과에 따라 template.md의 포맷팅 규칙 적용.
-
-## 사용자 선호
-
-사용자가 형식을 지정하면 그걸 우선:
+사용자가 형식을 지정하면 터미널 설정보다 우선:
 - "json으로" → JSON 출력
 - "간단하게" → 핵심만
 - "자세히" → 상세 포함
 - "테이블로" → 테이블 형식
-
-## 커스터마이징
-
-사용자가 `template.md`를 수정하면 그 규칙을 따른다.

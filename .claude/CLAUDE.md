@@ -51,7 +51,6 @@ plugins/              # 배포용 소스 코드 (원본)
 .claude/skills/forge        → plugins/forge/skills/forge
 .claude/skills/look-back    → plugins/look-back/skills/look-back
 .claude/skills/siat         → plugins/siat/skills/siat
-.claude/skills/tts          → plugins/tts/skills/tts
 ```
 
 ---

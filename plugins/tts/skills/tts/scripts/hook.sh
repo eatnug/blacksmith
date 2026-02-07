@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stop hook: notify (Ping + green blink) or full TTS narration
+# Stop hook: notify (Ping + green blink until focused) or full TTS narration
 
 INPUT=$(cat)
 
@@ -18,15 +18,35 @@ while [ "$PID" -gt 1 ] 2>/dev/null; do
 done
 [ -z "$TTY" ] && exit 0
 
-# Notify-only path: Ping + green blink, no TTS
+# Kill any previous blink loop
+STATE_DIR="/tmp/claude-tts"
+mkdir -p "$STATE_DIR"
+BLINK_PIDFILE="$STATE_DIR/blink-pid"
+if [ -f "$BLINK_PIDFILE" ]; then
+  OLD_PID=$(cat "$BLINK_PIDFILE" 2>/dev/null)
+  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    kill "$OLD_PID" 2>/dev/null
+  fi
+  rm -f "$BLINK_PIDFILE"
+fi
+printf '\e]111\a' > "$TTY" 2>/dev/null
+
+# Notify-only path: Ping + green blink until focused
 if [ ! -f "$HOME/.claude/tts-enabled" ]; then
   afplay /System/Library/Sounds/Ping.aiff 2>/dev/null &
-  for i in 1 2 3; do
-    printf '\e]11;#1a3a1a\a' > "$TTY"
-    sleep 0.25
-    printf '\e]111\a' > "$TTY"
-    sleep 0.25
-  done
+  (
+    while true; do
+      printf '\e]11;#1a3a1a\a' > "$TTY"
+      sleep 0.25
+      printf '\e]111\a' > "$TTY"
+      sleep 0.25
+      ACTIVE_TTY=$(osascript -e 'tell application "iTerm2" to tell current window to tell current tab to get tty of current session' 2>/dev/null)
+      [ "$ACTIVE_TTY" = "$TTY" ] && break
+    done
+    printf '\e]111\a' > "$TTY" 2>/dev/null
+    rm -f "$BLINK_PIDFILE"
+  ) &
+  echo $! > "$BLINK_PIDFILE"
   exit 0
 fi
 
@@ -41,8 +61,6 @@ while [ "$P" -gt 1 ] 2>/dev/null; do
 done
 
 # Kill leftover background process from previous run
-STATE_DIR="/tmp/claude-tts"
-mkdir -p "$STATE_DIR"
 PIDFILE="$STATE_DIR/pid"
 if [ -f "$PIDFILE" ]; then
   OLD_PID=$(cat "$PIDFILE" 2>/dev/null)

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./skills/tts/scripts/hook.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/tts/scripts/hook.sh"
           }
         ]
       }

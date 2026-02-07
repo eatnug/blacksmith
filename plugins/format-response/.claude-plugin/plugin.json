@@ -1,8 +1,0 @@
-{
-  "name": "format-response",
-  "description": "Auto-format responses based on terminal width via UserPromptSubmit hook.",
-  "version": "2.0.0",
-  "author": {
-    "name": "eatnug"
-  }
-}

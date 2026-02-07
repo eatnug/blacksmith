@@ -1,11 +1,11 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "$PLUGIN_DIR/hooks/inject-format-context.sh"
+            "command": "./skills/tts/scripts/hook.sh"
           }
         ]
       }

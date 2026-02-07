@@ -4,7 +4,7 @@
 
 이 레포는 **독립적인 Claude Code 플러그인들을 개발하는 공간**입니다.
 
-- 각 플러그인(clarify, forge, split, siat, look-back, format-response)은 **독립적으로 동작**
+- 각 플러그인(clarify, forge, split, siat, look-back, tts)은 **독립적으로 동작**
 - 플러그인 간 통합보다 **각각의 완성도**에 집중
 - siat가 메인이 아님 - 다른 플러그인들과 동등한 하나의 플러그인일 뿐
 
@@ -49,7 +49,6 @@ plugins/              # 배포용 소스 코드 (원본)
 .claude/commands/init.md    → plugins/siat/commands/init.md
 .claude/skills/clarify      → plugins/clarify/skills/clarify
 .claude/skills/forge        → plugins/forge/skills/forge
-.claude/skills/format-response → plugins/format-response/skills/format-response
 .claude/skills/look-back    → plugins/look-back/skills/look-back
 .claude/skills/siat         → plugins/siat/skills/siat
 ```

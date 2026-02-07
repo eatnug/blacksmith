@@ -23,10 +23,10 @@
       "version": "1.0.0"
     },
     {
-      "name": "format-response",
-      "source": "./plugins/format-response",
-      "description": "Auto-format responses based on terminal width via UserPromptSubmit hook.",
-      "version": "2.0.0"
+      "name": "tts",
+      "source": "./plugins/tts",
+      "description": "TTS narrator + pane notification for Claude Code responses. Language-aware voices (Korean/English).",
+      "version": "1.0.0"
     },
     {
       "name": "split",

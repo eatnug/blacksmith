@@ -1,13 +1,5 @@
 #!/bin/bash
-# Stop hook: orange blink (summarizing) → green blink (ready) → TTS on focus
-
-# Recursion guard: walk process tree — if any ancestor is claude -p, exit
-P=$PPID
-while [ "$P" -gt 1 ] 2>/dev/null; do
-  CMD=$(ps -p "$P" -o args= 2>/dev/null)
-  case "$CMD" in *claude\ -p*) exit 0 ;; esac
-  P=$(ps -p "$P" -o ppid= 2>/dev/null | tr -d ' ')
-done
+# Stop hook: notify (Ping + green blink) or full TTS narration
 
 INPUT=$(cat)
 
@@ -25,6 +17,28 @@ while [ "$PID" -gt 1 ] 2>/dev/null; do
   PID=$(ps -p "$PID" -o ppid= 2>/dev/null | tr -d ' ')
 done
 [ -z "$TTY" ] && exit 0
+
+# Notify-only path: Ping + green blink, no TTS
+if [ ! -f "$HOME/.claude/tts-enabled" ]; then
+  afplay /System/Library/Sounds/Ping.aiff 2>/dev/null &
+  for i in 1 2 3; do
+    printf '\e]11;#1a3a1a\a' > "$TTY"
+    sleep 0.25
+    printf '\e]111\a' > "$TTY"
+    sleep 0.25
+  done
+  exit 0
+fi
+
+# === TTS path below (tts-enabled exists) ===
+
+# Recursion guard: walk process tree — if any ancestor is claude -p, exit
+P=$PPID
+while [ "$P" -gt 1 ] 2>/dev/null; do
+  CMD=$(ps -p "$P" -o args= 2>/dev/null)
+  case "$CMD" in *claude\ -p*) exit 0 ;; esac
+  P=$(ps -p "$P" -o ppid= 2>/dev/null | tr -d ' ')
+done
 
 # Kill leftover background process from previous run
 STATE_DIR="/tmp/claude-tts"

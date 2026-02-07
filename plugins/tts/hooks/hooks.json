@@ -9,6 +9,17 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/skills/tts/scripts/notify-hook.sh"
+          }
+        ]
+      }
     ]
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: tts
-description: Toggle TTS + pane notification on/off.
+description: Toggle notification mode (off / notify / notify+tts).
 ---
 
 Run `~/.claude/skills/tts/scripts/toggle.sh` and show its output.

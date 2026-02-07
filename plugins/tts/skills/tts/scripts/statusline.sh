@@ -149,10 +149,12 @@ if [ -n "$session_id" ]; then
   session_info=" 🆔 ${DIM}${session_id}${RESET}"
 fi
 
-# 6. Hooks status (single toggle)
+# 6. Notification status (3-state)
 hooks_info=""
-if [ -f "$HOME/.claude/hooks-enabled" ]; then
-  hooks_info=" 🔔${GREEN}on${RESET}"
+if [ -f "$HOME/.claude/tts-enabled" ]; then
+  hooks_info=" 🔔${GREEN}tts${RESET}"
+elif [ -f "$HOME/.claude/hooks-enabled" ]; then
+  hooks_info=" 🔔${YELLOW}notify${RESET}"
 else
   hooks_info=" 🔔${DIM}off${RESET}"
 fi

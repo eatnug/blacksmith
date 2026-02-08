@@ -2,6 +2,7 @@
 # Stop hook: notify (Ping + green blink until focused) or full TTS narration
 
 INPUT=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 [ ! -f "$HOME/.claude/hooks-enabled" ] && exit 0
 
@@ -40,8 +41,7 @@ if [ ! -f "$HOME/.claude/tts-enabled" ]; then
       sleep 0.25
       printf '\e]111\a' > "$TTY"
       sleep 0.25
-      ACTIVE_TTY=$(osascript -e 'tell application "iTerm2" to tell current window to tell current tab to get tty of current session' 2>/dev/null)
-      [ "$ACTIVE_TTY" = "$TTY" ] && break
+      "$SCRIPT_DIR/is-focused.sh" "$TTY" && break
     done
     printf '\e]111\a' > "$TTY" 2>/dev/null
     rm -f "$BLINK_PIDFILE"
@@ -125,8 +125,7 @@ read_response() {
   [ ! -f "$SUMMARY_FILE" ] && exit 0
 
   while true; do
-    ACTIVE_TTY=$(osascript -e 'tell application "iTerm2" to tell current window to tell current tab to get tty of current session' 2>/dev/null)
-    [ "$ACTIVE_TTY" = "$TTY" ] && break
+    "$SCRIPT_DIR/is-focused.sh" "$TTY" && break
     printf '\e]11;#1a3a1a\a' > "$TTY"
     sleep 0.25
     printf '\e]111\a' > "$TTY"

@@ -26,7 +26,7 @@
       "name": "tts",
       "source": "./plugins/tts",
       "description": "Notifier with optional TTS for Claude Code. Sound + visual blink on events, with optional TTS narration.",
-      "version": "2.1.0"
+      "version": "2.2.0"
     },
     {
       "name": "split",

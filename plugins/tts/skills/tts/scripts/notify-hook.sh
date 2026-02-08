@@ -2,6 +2,7 @@
 # Notification hook: Glass sound + red blink until pane is focused
 
 INPUT=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 [ ! -f "$HOME/.claude/hooks-enabled" ] && exit 0
 
@@ -41,8 +42,7 @@ afplay /System/Library/Sounds/Glass.aiff 2>/dev/null &
     sleep 0.25
     printf '\e]111\a' > "$TTY"
     sleep 0.25
-    ACTIVE_TTY=$(osascript -e 'tell application "iTerm2" to tell current window to tell current tab to get tty of current session' 2>/dev/null)
-    [ "$ACTIVE_TTY" = "$TTY" ] && break
+    "$SCRIPT_DIR/is-focused.sh" "$TTY" && break
   done
   printf '\e]111\a' > "$TTY" 2>/dev/null
   rm -f "$BLINK_PIDFILE"

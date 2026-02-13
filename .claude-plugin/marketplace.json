@@ -44,7 +44,7 @@
       "name": "think",
       "source": "./plugins/think",
       "description": "Thinking partner. Helps sort scattered thoughts using the known/unknown matrix.",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }

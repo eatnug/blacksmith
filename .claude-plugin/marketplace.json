@@ -39,6 +39,12 @@
       "source": "./plugins/siat",
       "description": "Universal SDD framework. Linear workflow: specify → plan → implement → review.",
       "version": "7.8.4"
+    },
+    {
+      "name": "think",
+      "source": "./plugins/think",
+      "description": "Thinking partner. Helps sort scattered thoughts using the known/unknown matrix.",
+      "version": "1.0.0"
     }
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "name": "think",
+  "description": "Thinking partner. Helps sort scattered thoughts using the known/unknown matrix.",
+  "version": "1.0.0",
+  "author": {
+    "name": "eatnug"
+  }
+}

@@ -104,6 +104,21 @@ Claude Code를 위한 스킬 대장간.
 
 ---
 
+### think
+
+> 흩어진 생각을 정리하는 thinking partner. Known/Unknown 매트릭스로 사고를 구조화합니다.
+
+```bash
+/plugin install think@blacksmith
+```
+
+**When to use**
+- 머릿속이 복잡하고 정리가 안 될 때
+- 의사결정을 내려야 하는데 뭐가 뭔지 모를 때
+- 막연한 목표나 걱정을 구체화하고 싶을 때
+
+---
+
 ## Full Set
 
 전부 설치:
@@ -115,4 +130,5 @@ Claude Code를 위한 스킬 대장간.
 /plugin install look-back@blacksmith
 /plugin install format-response@blacksmith
 /plugin install siat@blacksmith
+/plugin install think@blacksmith
 ```

@@ -43,8 +43,8 @@
     {
       "name": "think",
       "source": "./plugins/think",
-      "description": "Thinking partner. Helps sort scattered thoughts using the known/unknown matrix.",
-      "version": "1.1.0"
+      "description": "Thinking partner. Takes fuzzy fragments and makes them concrete: orient, shape, move.",
+      "version": "2.0.0"
     }
   ]
 }

@@ -1,0 +1,53 @@
+# Perfect SDD Configuration
+# Spec-Driven Development optimized for clarity, precision, and minimal context
+
+# Workflow Steps
+steps:
+  - clarify    # Requirements + codebase exploration (interactive)
+  - design     # Plan how to bridge the gap
+  - implement  # Execute the plan
+  - verify     # Final quality gate
+
+# Output Path
+output:
+  path: ".claude/siat/specs"
+
+# Interactive Steps (use AskUserQuestion for clarification)
+interactive:
+  channel: local           # local | slack
+  # Slack settings (required when channel: slack)
+  slack_bot_token: null    # Bot User OAuth Token (xoxb-...)
+  slack_channel_id: null   # Channel ID to create threads in
+
+# Gateway: User interaction channels for non-interactive steps
+gateway:
+  questions: local    # How to collect questions (local = AskUserQuestion)
+  feedback: local     # How to collect feedback (local = AskUserQuestion)
+
+# Hooks: Workflow extension points
+hooks:
+  pre_step: []
+  on_processed: []
+  on_approve: []
+  on_reject: []
+  on_revise: []
+  on_complete: []
+
+# Presets: Common configuration bundles
+presets:
+  # Remote mode: Use for async workflows with GitHub/Slack integration
+  remote:
+    slack_webhook_url: null    # https://hooks.slack.com/services/...
+    interactive:
+      channel: slack
+      slack_bot_token: null    # xoxb-...
+      slack_user_id: null      # U... (Slack member ID)
+    gateway:
+      questions: local
+      feedback: script:siat-wait-approval.sh {spec_path}
+    hooks:
+      on_processed:
+        - script:siat-gh-issue.sh {spec_path}
+        - script:siat-slack-notify.sh {spec_path}
+      on_approve:
+        - script:siat-gh-issue-close.sh {spec_path}
